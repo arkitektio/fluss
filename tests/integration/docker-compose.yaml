@@ -1,0 +1,35 @@
+version: "3.4"
+
+services:
+  daten:
+    image: jhnnsrs/daten:prod
+    restart: always
+    environment:
+      POSTGRES_MULTIPLE_DATABASES: herredb, flussdb
+      POSTGRES_PASSWORD: hello_django
+      POSTGRES_USER: hello_django
+  herre:
+    image: jhnnsrs/herre:prod
+    command: bash run-debug.sh
+    volumes:
+      - ./herre.yaml:/workspace/config.yaml
+    ports:
+      - 8008:8000
+    depends_on:
+      - daten
+  fluss:
+    image: jhnnsrs/fluss:prod
+    command: bash run-debug.sh
+    volumes:
+      - ./fluss.yaml:/workspace/config.yaml
+    ports:
+      - 8078:8070
+    depends_on:
+      - daten
+      - redis
+    labels:
+      platform: fluss
+  redis:
+    image: redis:latest
+    labels:
+      platform: redis

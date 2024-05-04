@@ -1,0 +1,11 @@
+query Workspace($id: ID!) {
+  workspace(id: $id) {
+    ...Workspace
+  }
+}
+
+query MyWorkspaces {
+  myworkspaces {
+    ...ListWorkspace
+  }
+}

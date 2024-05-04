@@ -1,0 +1,31 @@
+mutation start_trace($provision: ID!, $flow: ID!, $snapshot_interval: Int!) {
+  # Start a run on fluss
+  createCondition(
+    provision: $provision
+    flow: $flow
+    snapshotInterval: $snapshot_interval
+  ) {
+    id
+  }
+}
+
+mutation condition_snapshot($condition: ID!, $events: [ID]!) {
+  # Snapshot the current state on the fluss platform
+  createConditionSnapshot(condition: $condition, events: $events) {
+    id
+  }
+}
+
+mutation trace(
+  $condition: ID!
+  $source: String!
+  $state: ContractStatus!
+  $value: String
+) {
+  # Track a new event on the fluss platform
+  trace(condition: $condition, source: $source, state: $state, value: $value) {
+    id
+    source
+    value
+  }
+}

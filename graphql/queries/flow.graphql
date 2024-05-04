@@ -1,0 +1,18 @@
+query get_flow($id: ID) {
+  flow(id: $id) {
+    ...Flow
+  }
+}
+
+query search_flows($search: String, $values: [ID]) {
+  options: flows(name: $search, ids: $values) {
+    value: id
+    label: name
+  }
+}
+
+query list_flows {
+  flows {
+    ...ListFlow
+  }
+}

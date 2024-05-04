@@ -1,0 +1,312 @@
+fragment Widget on Widget {
+  kind
+  query
+  hook
+  placeholder
+  choices {
+    label
+    value
+  }
+  min
+  max
+  asParagraph
+  ward
+}
+
+fragment ReturnWidget on ReturnWidget {
+  kind
+  choices {
+    label
+    value
+  }
+}
+
+fragment PortChildNested on PortChild {
+  nullable
+  scope
+  kind
+  identifier
+  assignWidget {
+    ...Widget
+  }
+  returnWidget {
+    ...ReturnWidget
+  }
+  child {
+    nullable
+    scope
+    kind
+    identifier
+    assignWidget {
+      ...Widget
+    }
+    returnWidget {
+      ...ReturnWidget
+    }
+  }
+  variants {
+    nullable
+    scope
+    kind
+    identifier
+    assignWidget {
+      ...Widget
+    }
+    returnWidget {
+      ...ReturnWidget
+    }
+  }
+}
+
+fragment PortChild on PortChild {
+  kind
+  identifier
+  nullable
+  scope
+  assignWidget {
+    ...Widget
+  }
+  returnWidget {
+    ...ReturnWidget
+  }
+  child {
+    ...PortChildNested
+  }
+  variants {
+    ...PortChildNested
+  }
+}
+
+fragment Port on Port {
+  key
+  label
+  identifier
+  kind
+  scope
+  description
+  assignWidget {
+    ...Widget
+  }
+  returnWidget {
+    ...ReturnWidget
+  }
+  child {
+    ...PortChild
+  }
+  variants {
+    ...PortChild
+  }
+  nullable
+}
+
+fragment StreamItemChild on StreamItemChild {
+  kind
+  identifier
+  scope
+  child {
+    kind
+    identifier
+  }
+  variants {
+    kind
+    identifier
+  }
+}
+
+fragment StreamItem on StreamItem {
+  key
+  kind
+  identifier
+  scope
+  nullable
+  child {
+    ...StreamItemChild
+  }
+  variants {
+    ...StreamItemChild
+  }
+}
+
+fragment FlowNodeCommons on FlowNodeCommons {
+  instream {
+    ...Port
+  }
+  outstream {
+    ...Port
+  }
+  constream {
+    ...Port
+  }
+  constants
+  description
+  name
+}
+
+fragment RetriableNode on RetriableNode {
+  maxRetries
+  retryDelay
+}
+
+fragment ArkitektNode on ArkitektNode {
+  ...FlowNodeCommons
+  ...RetriableNode
+  __typename
+  hash
+  kind
+  defaults
+  binds {
+    clients
+    templates
+  }
+  allowLocal
+  mapStrategy
+  assignTimeout
+  yieldTimeout
+  reserveTimeout
+}
+
+fragment ArkitektFilterNode on ArkitektFilterNode {
+  ...FlowNodeCommons
+  ...RetriableNode
+  __typename
+  hash
+  kind
+  defaults
+  binds {
+    clients
+    templates
+  }
+  allowLocal
+  mapStrategy
+  assignTimeout
+  yieldTimeout
+  reserveTimeout
+}
+fragment LocalNode on LocalNode {
+  ...FlowNodeCommons
+  ...RetriableNode
+  __typename
+  hash
+  kind
+  defaults
+  allowLocal
+  mapStrategy
+  interface
+  assignTimeout
+  yieldTimeout
+}
+
+fragment ReactiveNode on ReactiveNode {
+  ...FlowNodeCommons
+  __typename
+  implementation
+  defaults
+}
+
+fragment ArgNode on ArgNode {
+  ...FlowNodeCommons
+  __typename
+}
+
+fragment KwargNode on KwargNode {
+  ...FlowNodeCommons
+  __typename
+}
+
+fragment ReturnNode on ReturnNode {
+  ...FlowNodeCommons
+  __typename
+}
+
+fragment GraphNode on ReturnNode {
+  ...FlowNodeCommons
+  __typename
+}
+
+fragment FlowNode on FlowNode {
+  id
+  position {
+    x
+    y
+  }
+  typename
+  parentNode
+  ...ArkitektNode
+  ...ReactiveNode
+  ...ArgNode
+  ...KwargNode
+  ...ReturnNode
+  ...LocalNode
+  ...GraphNode
+  ...ArkitektFilterNode
+}
+
+fragment FlowEdgeCommons on FlowEdgeCommons {
+  stream {
+    ...StreamItem
+  }
+}
+
+fragment LabeledEdge on LabeledEdge {
+  ...FlowEdgeCommons
+  __typename
+}
+
+fragment FancyEdge on FancyEdge {
+  ...FlowEdgeCommons
+  __typename
+}
+
+fragment FlowEdge on FlowEdge {
+  id
+  source
+  sourceHandle
+  target
+  targetHandle
+  typename
+  ...LabeledEdge
+  ...FancyEdge
+}
+
+fragment Global on Global {
+  toKeys
+  port {
+    ...Port
+  }
+}
+
+fragment Flow on Flow {
+  __typename
+  id
+  name
+  graph {
+    nodes {
+      ...FlowNode
+    }
+    edges {
+      ...FlowEdge
+    }
+    globals {
+      ...Global
+    }
+    args {
+      ...Port
+    }
+    returns {
+      ...Port
+    }
+  }
+  brittle
+  createdAt
+  workspace {
+    id
+    name
+  }
+  hash
+}
+
+fragment ListFlow on Flow {
+  id
+  name
+  hash
+}

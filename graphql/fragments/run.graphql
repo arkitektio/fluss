@@ -1,0 +1,17 @@
+fragment Run on Run {
+  id
+  assignation
+  flow {
+    id
+    name
+  }
+  events {
+    type
+    t
+    causedBy
+    createdAt
+    source
+    value
+  }
+  createdAt
+}

@@ -1,0 +1,15 @@
+fragment Workspace on Workspace {
+  id
+  name
+  latestFlow {
+    ...Flow
+  }
+}
+
+fragment ListWorkspace on Workspace {
+  id
+  name
+  flows {
+    id
+  }
+}

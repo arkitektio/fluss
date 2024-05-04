@@ -1,0 +1,52 @@
+mutation run($assignation: ID!, $flow: ID!, $snapshot_interval: Int!) {
+  # Start a run on fluss
+  start(
+    assignation: $assignation
+    flow: $flow
+    snapshotInterval: $snapshot_interval
+  ) {
+    id
+  }
+}
+
+mutation runlog($run: ID!, $message: String!) {
+  # Start a run on fluss
+  alog(run: $run, message: $message) {
+    id
+  }
+}
+
+mutation snapshot($run: ID!, $events: [ID]!, $t: Int!) {
+  # Snapshot the current state on the fluss platform
+  snapshot(run: $run, events: $events, t: $t) {
+    id
+  }
+}
+
+mutation track(
+  $run: ID!
+  $source: String!
+  $handle: String!
+  $type: EventTypeInput!
+  $value: EventValue
+  $caused_by: [Int]!
+  $t: Int!
+) {
+  # Track a new event on the fluss platform
+  track(
+    run: $run
+    source: $source
+    handle: $handle
+    type: $type
+    value: $value
+    causedBy: $caused_by
+    t: $t
+  ) {
+    id
+    source
+    handle
+    type
+    value
+    causedBy
+  }
+}

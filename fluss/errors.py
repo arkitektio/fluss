@@ -1,0 +1,2 @@
+class NoFlussFound(Exception):
+    pass
