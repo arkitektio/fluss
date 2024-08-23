@@ -2,7 +2,6 @@
 
 """
 
-
 try:
     from rekuest.structures.default import (
         get_default_structure_registry,
