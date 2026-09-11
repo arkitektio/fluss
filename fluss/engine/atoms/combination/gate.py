@@ -1,8 +1,8 @@
 import asyncio
 from typing import  Optional
-from reaktion_next.atoms.helpers import index_for_handle
-from reaktion_next.atoms.combination.base import CombinationAtom
-from reaktion_next.events import EventType, OutEvent, NextInEvent, ErrorInEvent, ErrorOutEvent, NextOutEvent, CompleteOutEvent
+from fluss.engine.atoms.helpers import index_for_handle
+from fluss.engine.atoms.combination.base import CombinationAtom
+from fluss.engine.events import EventType, OutEvent, NextInEvent, ErrorInEvent, ErrorOutEvent, NextOutEvent, CompleteOutEvent
 import logging
 from typing import Optional
 

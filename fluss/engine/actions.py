@@ -11,26 +11,26 @@ cannot be expressed through signature inference.
 from functools import partial
 from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 
-from fluss_next.api.schema import Flow, aget_flow
+from fluss.api.schema import Flow, aget_flow
 from rath.scalars import ID
-from rekuest_next.actors.actify import derive_implementation_details
-from rekuest_next.actors.functional import GEN, FunctionalActor
-from rekuest_next.actors.types import (
+from rekuest.actors.actify import derive_implementation_details
+from rekuest.actors.functional import GEN, FunctionalActor
+from rekuest.actors.types import (
     ActorBuilder,
     AnyFunction,
     ImplementationDetails,
     RegisterConfig,
 )
-from rekuest_next.api.schema import (
+from rekuest.api.schema import (
     ActionKind,
     ArgPortInput,
     DefinitionInput,
     PortKind,
     ReturnPortInput,
 )
-from rekuest_next.structures.registry import StructureRegistry
+from rekuest.structures.registry import StructureRegistry
 
-from reaktion_next.engine import arun_flow
+from fluss.engine.engine import arun_flow
 
 
 async def run_flow(

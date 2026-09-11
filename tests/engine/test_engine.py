@@ -5,11 +5,11 @@ import itertools
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import pytest
-from fluss_next.api.schema import Flow
-from rekuest_next.messages import Assign
+from fluss.api.schema import Flow
+from rekuest.messages import Assign
 
-import reaktion_next.engine as engine_module
-from reaktion_next.engine import arun_flow
+import fluss.engine.engine as engine_module
+from fluss.engine.engine import arun_flow
 
 
 def make_port(key: str, kind: str = "INT", nullable: bool = False) -> Dict[str, Any]:
@@ -388,9 +388,9 @@ async def test_cancellation_cleans_up(
 
 @pytest.mark.asyncio
 async def test_run_flow_action_is_registered() -> None:
-    """Importing reaktion_next registers run_flow in the default app registry."""
-    import reaktion_next  # noqa: F401
-    from rekuest_next.app import get_default_app_registry
+    """Importing fluss.engine registers run_flow in the default app registry."""
+    import fluss.engine  # noqa: F401
+    from rekuest.app import get_default_app_registry
 
     registry = get_default_app_registry()
     implementation = registry.implementations["run_flow"]

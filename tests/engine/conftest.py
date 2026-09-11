@@ -1,7 +1,7 @@
 """Conftest file for pytest fixtures."""
 
 import pytest
-from fluss_next.api.schema import (
+from fluss.api.schema import (
     MapStrategy,
     ReactiveNode,
     BaseGraphNodePosition,

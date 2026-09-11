@@ -1,7 +1,7 @@
 """Graph helpers for routing events along flow edges."""
 
 from typing import List
-from fluss_next.api.schema import Graph
+from fluss.api.schema import Graph
 from .events import (
     NextInEvent,
     NextOutEvent,

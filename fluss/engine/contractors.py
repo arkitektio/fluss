@@ -1,10 +1,10 @@
 from typing import Protocol, runtime_checkable
-from reaktion_next.rpc_contract import DirectContract, RPCContract
-from fluss_next.api.schema import (
+from fluss.engine.rpc_contract import DirectContract, RPCContract
+from fluss.api.schema import (
     RekuestActionNodeBase,
 )
-from rekuest_next.api.schema import afind
-from rekuest_next.actors.base import Actor
+from rekuest.api.schema import afind
+from rekuest.actors.base import Actor
 
 
 @runtime_checkable

@@ -11,7 +11,7 @@ import asyncio
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from fluss_next.api.schema import (
+from fluss.api.schema import (
     ArgNode,
     Flow,
     ReactiveNode,
@@ -25,16 +25,16 @@ from fluss_next.api.schema import (
     atrack,
 )
 from rath.scalars import ID
-from rekuest_next.actors.base import Actor
-from rekuest_next.actors.helper import AssignmentHelper
-from rekuest_next.actors.vars import get_current_assignation_helper
-from rekuest_next.api.schema import acollect
-from rekuest_next.messages import Assign
+from rekuest.actors.base import Actor
+from rekuest.actors.helper import AssignmentHelper
+from rekuest.actors.vars import get_current_assignation_helper
+from rekuest.api.schema import acollect
+from rekuest.messages import Assign
 
-from reaktion_next.atoms.transport import AtomTransport
-from reaktion_next.atoms.utils import atomify
-from reaktion_next.contractors import NodeContractor, arkicontractor
-from reaktion_next.events import (
+from fluss.engine.atoms.transport import AtomTransport
+from fluss.engine.atoms.utils import atomify
+from fluss.engine.contractors import NodeContractor, arkicontractor
+from fluss.engine.events import (
     CompleteInEvent,
     CompleteOutEvent,
     ErrorInEvent,
@@ -43,9 +43,9 @@ from reaktion_next.events import (
     NextOutEvent,
     OutEvent,
 )
-from reaktion_next.reference_counter import ReferenceCounter
-from reaktion_next.rpc_contract import RPCContract
-from reaktion_next.utils import connected_events
+from fluss.engine.reference_counter import ReferenceCounter
+from fluss.engine.rpc_contract import RPCContract
+from fluss.engine.utils import connected_events
 
 logger = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
 import asyncio
 from typing import List, Optional
-from reaktion_next.atoms.combination.base import CombinationAtom
-from reaktion_next.events import NextInEvent, EventType, ErrorOutEvent, CompleteOutEvent, NextOutEvent
+from fluss.engine.atoms.combination.base import CombinationAtom
+from fluss.engine.events import NextInEvent, EventType, ErrorOutEvent, CompleteOutEvent, NextOutEvent
 import logging
 from pydantic import Field
-from reaktion_next.atoms.helpers import index_for_handle
+from fluss.engine.atoms.helpers import index_for_handle
 
 logger = logging.getLogger(__name__)
 

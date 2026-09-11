@@ -1,4 +1,4 @@
-from reaktion_next.atoms.base import Atom
+from fluss.engine.atoms.base import Atom
 
 
 class TransformationAtom(Atom):

@@ -15,6 +15,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# `fluss.engine` (formerly the reaktion-next distribution) executes flows and
+# imports rekuest unguarded, so it needs it present. Plain `fluss` does not:
+# its own rekuest integration sits behind a try/except in __init__, so the
+# dependency stays opt-in rather than being forced on every install.
+engine = ["rekuest>=3"]
 # Installed inside the semantic-release Docker action so build_command has uv.
 build = ["uv>=0.7.12"]
 

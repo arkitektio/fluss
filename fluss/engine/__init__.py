@@ -1,7 +1,7 @@
 """Reaktion: runs fluss flows as a generic rekuest action.
 
 Importing this package registers the ``run_flow`` implementation with the
-default app registry (see :mod:`reaktion_next.rekuest`).
+default app registry (see :mod:`fluss.engine.rekuest`).
 """
 
 from .actions import run_flow

@@ -1,5 +1,5 @@
-from fluss_next.api.schema import GraphNodeBase
-from reaktion_next.events import InEvent
+from fluss.api.schema import GraphNodeBase
+from fluss.engine.events import InEvent
 
 
 def index_for_handle(handle: str) -> int:

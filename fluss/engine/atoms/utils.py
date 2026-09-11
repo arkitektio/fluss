@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable, Dict
-from reaktion_next.atoms.transformation.buffer_count import BufferCountAtom
-from rekuest_next.messages import Assign
-from fluss_next.api.schema import (
+from fluss.engine.atoms.transformation.buffer_count import BufferCountAtom
+from rekuest.messages import Assign
+from fluss.api.schema import (
     RekuestFilterActionNode,
     RekuestMapActionNode,
     ReactiveNode,
@@ -11,30 +11,30 @@ from fluss_next.api.schema import (
     ActionKind,
 )
 import asyncio
-from reaktion_next.atoms.arkitekt import (
+from fluss.engine.atoms.arkitekt import (
     ArkitektMapAtom,
     ArkitektMergeMapAtom,
     ArkitektAsCompletedAtom,
     ArkitektOrderedAtom,
 )
-from reaktion_next.atoms.arkitekt_filter import ArkitektFilterAtom
-from reaktion_next.atoms.transformation.chunk import ChunkAtom
-from reaktion_next.atoms.transformation.buffer_complete import BufferCompleteAtom
-from reaktion_next.atoms.transformation.split import SplitAtom
-from reaktion_next.atoms.transformation.omit import OmitAtom
-from reaktion_next.atoms.combination.zip import ZipAtom
-from reaktion_next.atoms.transformation.filter import FilterAtom
-from reaktion_next.atoms.combination.withlatest import WithLatestAtom
-from reaktion_next.atoms.combination.gate import GateAtom
-from reaktion_next.atoms.filter.all import AllAtom
-from reaktion_next.rpc_contract import RPCContract
+from fluss.engine.atoms.arkitekt_filter import ArkitektFilterAtom
+from fluss.engine.atoms.transformation.chunk import ChunkAtom
+from fluss.engine.atoms.transformation.buffer_complete import BufferCompleteAtom
+from fluss.engine.atoms.transformation.split import SplitAtom
+from fluss.engine.atoms.transformation.omit import OmitAtom
+from fluss.engine.atoms.combination.zip import ZipAtom
+from fluss.engine.atoms.transformation.filter import FilterAtom
+from fluss.engine.atoms.combination.withlatest import WithLatestAtom
+from fluss.engine.atoms.combination.gate import GateAtom
+from fluss.engine.atoms.filter.all import AllAtom
+from fluss.engine.rpc_contract import RPCContract
 from .base import Atom
 from .transport import AtomTransport
-from rekuest_next.messages import Assign
+from rekuest.messages import Assign
 from typing import Any, Optional
-from reaktion_next.atoms.operations.math import MathAtom, operation_map
-from rekuest_next.actors.base import Actor
-from reaktion_next.reference_counter import ReferenceCounter
+from fluss.engine.atoms.operations.math import MathAtom, operation_map
+from rekuest.actors.base import Actor
+from fluss.engine.reference_counter import ReferenceCounter
 
 
 def atomify(

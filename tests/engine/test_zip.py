@@ -1,13 +1,13 @@
 import pytest
 from .utils import expectnext
 import asyncio
-from reaktion_next.events import  OutEvent, NextInEvent
-from reaktion_next.atoms.transport import MockTransport
+from fluss.engine.events import  OutEvent, NextInEvent
+from fluss.engine.atoms.transport import MockTransport
 from .conftest import (
     ReactiveNode,
 )
-from reaktion_next.atoms.transformation.chunk import ChunkAtom
-from reaktion_next.reference_counter import ReferenceCounter
+from fluss.engine.atoms.transformation.chunk import ChunkAtom
+from fluss.engine.reference_counter import ReferenceCounter
 
 @pytest.mark.asyncio
 @pytest.mark.actor

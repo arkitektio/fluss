@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
-from reaktion_next.atoms.combination.base import CombinationAtom
-from reaktion_next.events import (
+from fluss.engine.atoms.combination.base import CombinationAtom
+from fluss.engine.events import (
     CompleteOutEvent,
     ErrorOutEvent,
     EventType,

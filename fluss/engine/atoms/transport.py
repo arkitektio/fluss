@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 import asyncio
-from reaktion_next.events import OutEvent
+from fluss.engine.events import OutEvent
 
 
 class AtomTransport(BaseModel):

@@ -6,12 +6,12 @@ implementation" feature discovers it via the ``run_flow`` interface and
 forwards validated flow arguments to it.
 """
 
-from rekuest_next.actors.types import RegisterConfig
-from rekuest_next.app import get_default_app_registry
-from rekuest_next.register import register_func
-from rekuest_next.structures.default import get_default_structure_registry
+from rekuest.actors.types import RegisterConfig
+from rekuest.app import get_default_app_registry
+from rekuest.register import register_func
+from rekuest.structures.default import get_default_structure_registry
 
-from reaktion_next.actions import flow_actifier, run_flow
+from fluss.engine.actions import flow_actifier, run_flow
 
 # A single actor serves all flow runs, so they must not queue behind each
 # other (the FunctionalActor default is "serial").

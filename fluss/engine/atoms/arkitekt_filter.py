@@ -2,17 +2,17 @@ import asyncio
 import logging
 from typing import Any, List, Optional
 
-from fluss_next.api.schema import RekuestFilterActionNode
-from reaktion_next.atoms.generic import (
+from fluss.api.schema import RekuestFilterActionNode
+from fluss.engine.atoms.generic import (
     AsCompletedAtom,
     FilterAtom,
     MapAtom,
     MergeMapAtom,
     OrderedAtom,
 )
-from reaktion_next.atoms.helpers import node_to_reference
-from reaktion_next.events import InEvent
-from reaktion_next.rpc_contract import RPCContract
+from fluss.engine.atoms.helpers import node_to_reference
+from fluss.engine.events import InEvent
+from fluss.engine.rpc_contract import RPCContract
 
 logger = logging.getLogger(__name__)
 

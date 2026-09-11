@@ -1,9 +1,9 @@
 from types import TracebackType
 from typing import Any, AsyncGenerator, Dict, Optional, Protocol, runtime_checkable
 from koil.composition.base import KoiledModel
-from rekuest_next.api.schema import Action
-from rekuest_next.messages import Assign
-from rekuest_next.remote import acall_raw, aiterate_raw
+from rekuest.api.schema import Action
+from rekuest.messages import Assign
+from rekuest.remote import acall_raw, aiterate_raw
 
 
 @runtime_checkable

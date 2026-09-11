@@ -1,4 +1,4 @@
-from fluss_next.api.schema import ReactiveNode
+from fluss.api.schema import ReactiveNode
 from .base import Atom
 from typing import Dict, Any
 

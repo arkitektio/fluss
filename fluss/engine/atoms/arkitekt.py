@@ -3,18 +3,18 @@ import asyncio
 from typing import Any, List, Optional
 
 from pydantic import BaseModel
-from reaktion_next.atoms.helpers import node_to_reference
-from fluss_next.api.schema import RekuestMapActionNode, PortKind
-from reaktion_next.rpc_contract import RPCContract
-from reaktion_next.atoms.generic import (
+from fluss.engine.atoms.helpers import node_to_reference
+from fluss.api.schema import RekuestMapActionNode, PortKind
+from fluss.engine.rpc_contract import RPCContract
+from fluss.engine.atoms.generic import (
     MapAtom,
     MergeMapAtom,
     AsCompletedAtom,
     OrderedAtom,
 )
-from reaktion_next.events import InEvent
+from fluss.engine.events import InEvent
 import logging
-from rekuest_next.messages import Assign
+from rekuest.messages import Assign
 
 
 logger = logging.getLogger(__name__)

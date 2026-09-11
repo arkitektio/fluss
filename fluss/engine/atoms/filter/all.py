@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
-from reaktion_next.atoms.transformation.base import TransformationAtom
-from reaktion_next.events import EventType, OutEvent, InEvent
+from fluss.engine.atoms.transformation.base import TransformationAtom
+from fluss.engine.events import EventType, OutEvent, InEvent
 import logging
 from pydantic import Field
 from functools import reduce

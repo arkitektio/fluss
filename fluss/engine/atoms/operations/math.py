@@ -1,8 +1,8 @@
 import asyncio
 from typing import List
-from reaktion_next.atoms.operations.base import OperationAtom
-from reaktion_next.events import EventType, OutEvent
-from fluss_next.api.schema import ReactiveImplementation
+from fluss.engine.atoms.operations.base import OperationAtom
+from fluss.engine.events import EventType, OutEvent
+from fluss.api.schema import ReactiveImplementation
 import logging
 import operator
 
