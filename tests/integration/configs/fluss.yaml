@@ -15,6 +15,9 @@ django:
     - "*"
   secret_key: ab94ec351412c22324b2f635e0d6b9dd
 authentikate:
+  # Required since authentikate 4.0: without it the server refuses to boot, and a
+  # token an issuer minted for some other service would otherwise be accepted here.
+  audience: fluss
   issuers:
   - kind: jwks_uri
     issuer: https://go.arkitekt.live
