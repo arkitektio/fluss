@@ -1,16 +1,15 @@
 fragment Run on Run {
   id
-  assignation
+  taskId
   flow {
     id
-    name
+    title
   }
   events {
-    type
+    kind
     t
     causedBy
     createdAt
-    source
     value
   }
   createdAt

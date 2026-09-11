@@ -1,36 +1,138 @@
-[tool.poetry]
-name = "fluss"
-version = "0.1.61"
-description = ""
-authors = ["jhnnsrs <jhnnsrs@gmail.com>"]
-packages = [{ include = "fluss" }]
+[project]
+name = "fluss-next"
+version = "1.0.0-rc.1" 
+readme = "README.md"
+readme-content-type = "text/markdown"
+homepage = "https://arkitekt.live"
+description = "the next generation of Fluss, a Python library for workflow design"
+authors = [{ name = "jhnnsrs", email = "jhnnsrs@gmail.com" }]
+requires-python = ">=3.11, <4.0"
+license = "GPL-3.0-or-later"
+dependencies = [
+    "rath>=3.5.1",
+    "websockets>=15.0.1",
+]
 
-[tool.poetry.dependencies]
-python = "^3.8"
-rath = ">=0.4.6"
+[project.optional-dependencies]
+# Installed inside the semantic-release Docker action so build_command has uv.
+build = ["uv>=0.7.12"]
 
-[tool.poetry.group.dev.dependencies]
-testcontainers = "3.7.0"
-autoflake = "^1.7.7"
-pytest = "^7.2.0"
-PyQtWebEngine = "^5.15.5"
-PyQt5 = "^5.15.6"
-pytest-qt = "^4.2.0"
-pytest-asyncio = "^0.20.2"
-turms = { version = ">=0.2.3", python = "^3.9" }
-aiohttp = "^3.8.3"
-websockets = "^10.4"
-black = "^22.10.0"
-pytest-cov = "^4.0.0"
+
+[tool.uv]
+dev-dependencies =  [
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.1.1",
+    "pytest>=8.3.5",
+    "python-semantic-release>=9.21.0",
+    "autoflake>=1.7.7,<2",
+    "aiohttp>=3.8.3,<4",
+    "black>=23.1.0,<24",
+    "pytest-aiohttp>=1.0.4,<2",
+    "ruff>=0.0.254",
+    "dokker>=2",
+    "rekuest-next>=0.12.2",
+    "basedpyright>=1.21",
+]
+
+[tool.basedpyright]
+include = ["fluss_next"]
+exclude = ["**/__pycache__", "tests"]
+typeCheckingMode = "standard"
+
+
+[tool.ruff]
+extend-select = ["ANN", "D1"]
+
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Same as Black.
+line-length = 100
+
+[tool.hatch.build.targets.sdist]
+include = ["fluss_next"]
+
+[tool.hatch.build.targets.wheel]
+include = ["fluss_next"]
+
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
-qt_api = "pyqt5"
 markers = [
     "integration: marks tests that require a running server",
-    "qt: marks tests that require a running qt application",
-    "serialize: marks tests that require serialization",
+    "define: marks tests that concern to definining a funcionality",
+    "shrink: marks tests that concern to serializing inputs to requests to an actor",
+    "expand: marks tests that concern to serializing outputs from answers of an actor",
+    "actor: marks tests that concern actors",
 ]
+
+testpaths = ["tests"]
+
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+# The semantic-release GitHub Action runs in a Docker container without uv, so
+# install it first (the `build` extra). After PSR bumps the version in
+# pyproject.toml, re-sync just this package's entry in uv.lock and stage it so
+# the release commit carries a consistent lock. $PACKAGE_NAME is injected by PSR.
+build_command = """
+    python -m pip install -e '.[build]'
+    uv lock --upgrade-package "$PACKAGE_NAME"
+    git add uv.lock
+    uv build
+"""
+commit_message = "chore(release): v{version} [skip ci]"
+
+# main -> stable X.Y.Z. next -> prereleases X.Y.Z-rc.N. N.x -> maintenance.
+[tool.semantic_release.branches.main]
+match = "main"
+prerelease = false
+
+[tool.semantic_release.branches.next]
+match = "next"
+prerelease = true
+prerelease_token = "rc"
+
+# Maintenance branches (1.x, 2.x, ...) cut stable patch/minor releases for an
+# older major after a new major has shipped from main.
+[tool.semantic_release.branches.maintenance]
+match = '^\d+\.x$'
+prerelease = false
+
+# Keep the changelog focused on user-facing changes. These patterns only filter
+# what's rendered — they do not affect version bumps.
+[tool.semantic_release.changelog]
+exclude_commit_patterns = [
+    '^chore(?:\([^)]*\))?: ',
+    '^ci(?:\([^)]*\))?: ',
+    '^build(?:\([^)]*\))?: ',
+    '^style(?:\([^)]*\))?: ',
+    '^test(?:\([^)]*\))?: ',
+    '^Merge ',
+]
+

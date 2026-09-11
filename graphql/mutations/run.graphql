@@ -1,51 +1,29 @@
-mutation run($assignation: ID!, $flow: ID!, $snapshot_interval: Int!) {
+mutation CreateRun($input: CreateRunInput!) {
   # Start a run on fluss
-  start(
-    assignation: $assignation
-    flow: $flow
-    snapshotInterval: $snapshot_interval
-  ) {
+  createRun(input: $input) {
     id
   }
 }
 
-mutation runlog($run: ID!, $message: String!) {
+mutation CloseRun($run: ID!) {
   # Start a run on fluss
-  alog(run: $run, message: $message) {
+  closeRun(input: { run: $run }) {
     id
   }
 }
 
-mutation snapshot($run: ID!, $events: [ID]!, $t: Int!) {
+mutation Snapshot($input: SnapshotRunInput!) {
   # Snapshot the current state on the fluss platform
-  snapshot(run: $run, events: $events, t: $t) {
+  snapshot(input: $input) {
     id
   }
 }
 
-mutation track(
-  $run: ID!
-  $source: String!
-  $handle: String!
-  $type: EventTypeInput!
-  $value: EventValue
-  $caused_by: [Int]!
-  $t: Int!
-) {
+mutation Track($input: TrackInput!) {
   # Track a new event on the fluss platform
-  track(
-    run: $run
-    source: $source
-    handle: $handle
-    type: $type
-    value: $value
-    causedBy: $caused_by
-    t: $t
-  ) {
+  track(input: $input) {
     id
-    source
-    handle
-    type
+    kind
     value
     causedBy
   }

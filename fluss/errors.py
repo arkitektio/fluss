@@ -1,2 +1,0 @@
-class NoFlussFound(Exception):
-    pass

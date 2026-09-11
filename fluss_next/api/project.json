@@ -1,0 +1,162 @@
+{
+    "schema": "http://jhnnsrs-lab/fluss/schema",
+    "documents": "graphql/*/**.graphql",
+    "extensions": {
+        "turms": {
+            "domain": null,
+            "out_dir": "fluss_next/api",
+            "dump_configuration": true,
+            "configuration_name": "project.json",
+            "dump_schema": true,
+            "schema_name": "schema.graphql",
+            "generated_name": "schema.py",
+            "documents": "graphql/*/**.graphql",
+            "verbose": false,
+            "exit_on_error": true,
+            "allow_introspection": true,
+            "object_bases": [
+                "pydantic.BaseModel"
+            ],
+            "interface_bases": null,
+            "always_resolve_interfaces": true,
+            "exclude_typenames": true,
+            "scalar_definitions": {
+                "JSONSerializable": "typing.Any",
+                "uuid": "str",
+                "Callback": "str",
+                "Any": "typing.Any",
+                "Arg": "typing.Any",
+                "ID": "rath.scalars.ID",
+                "EventValue": "fluss_next.scalars.EventValue",
+                "ValueMap": "typing.Dict",
+                "AnyDefault": "typing.Any",
+                "Identifier": "str",
+                "SearchQuery": "str"
+            },
+            "coercible_scalars": {},
+            "coercible_inputs": {},
+            "graphql_default_class": null,
+            "deprecated_class": null,
+            "document_field_metadata": true,
+            "unset_type_class": null,
+            "unset_instance": null,
+            "freeze": {
+                "enabled": true,
+                "types": [
+                    "input",
+                    "fragment",
+                    "object"
+                ],
+                "exclude": null,
+                "include": null,
+                "convert_list_to_tuple": true
+            },
+            "create_catchall": true,
+            "options": {
+                "enabled": true,
+                "extra": "forbid",
+                "populate_by_name": null,
+                "from_attributes": null,
+                "use_enum_values": null,
+                "validate_assignment": null,
+                "alias_mode": "split",
+                "types": [
+                    "input"
+                ],
+                "exclude": null,
+                "include": null
+            },
+            "skip_forwards": false,
+            "min_python_version": "3.10",
+            "type_annotation_style": "auto",
+            "additional_bases": {
+                "FlowGraph": [
+                    "fluss_next.traits.Graph"
+                ],
+                "StreamItem": [
+                    "fluss_next.traits.MockableTrait"
+                ],
+                "StreamItemChild": [
+                    "fluss_next.traits.MockableTrait"
+                ]
+            },
+            "additional_config": {},
+            "force_plugin_order": true,
+            "omitted_document_rules": [],
+            "parsers": [],
+            "plugins": [
+                {
+                    "type": "turms.plugins.enums.EnumsPlugin"
+                },
+                {
+                    "type": "turms.plugins.inputs.InputsPlugin"
+                },
+                {
+                    "type": "turms.plugins.fragments.FragmentsPlugin"
+                },
+                {
+                    "type": "turms.plugins.operations.OperationsPlugin"
+                },
+                {
+                    "type": "turms.plugins.funcs.FuncsPlugin",
+                    "coercible_scalars": {
+                        "ID": "rath.scalars.IDCoercible"
+                    },
+                    "expand_input_types": [
+                        "input"
+                    ],
+                    "global_kwargs": [
+                        {
+                            "type": "fluss_next.rath.FlussRath",
+                            "key": "rath",
+                            "description": "The client we want to use (defaults to the currently active client)"
+                        }
+                    ],
+                    "definitions": [
+                        {
+                            "type": "subscription",
+                            "is_async": true,
+                            "use": "fluss_next.funcs.asubscribe"
+                        },
+                        {
+                            "type": "query",
+                            "is_async": true,
+                            "use": "fluss_next.funcs.aexecute"
+                        },
+                        {
+                            "type": "mutation",
+                            "is_async": true,
+                            "use": "fluss_next.funcs.aexecute"
+                        },
+                        {
+                            "type": "subscription",
+                            "use": "fluss_next.funcs.subscribe"
+                        },
+                        {
+                            "type": "query",
+                            "use": "fluss_next.funcs.execute"
+                        },
+                        {
+                            "type": "mutation",
+                            "use": "fluss_next.funcs.execute"
+                        }
+                    ]
+                }
+            ],
+            "processors": [
+                {
+                    "type": "turms.processors.disclaimer.DisclaimerProcessor"
+                }
+            ],
+            "stylers": [
+                {
+                    "type": "turms.stylers.default.DefaultStyler"
+                },
+                {
+                    "type": "turms.stylers.appender.AppenderStyler",
+                    "append_fragment": ""
+                }
+            ]
+        }
+    }
+}

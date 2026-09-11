@@ -1,12 +1,12 @@
-query GetRun($id: ID!) {
+query Run($id: ID!) {
   run(id: $id) {
     ...Run
   }
 }
 
-query SearchRuns($search: String, $values: [ID]) {
-  options: runs(name: $search, ids: $values) {
+query SearchRuns($search: String, $values: [ID!]) {
+  options: runs(filters: { search: $search, ids: $values }) {
     value: id
-    label: assignation
+    label: taskId
   }
 }

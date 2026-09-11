@@ -1,0 +1,31 @@
+postgres:
+  db_name: fluss
+  dependency: db
+  host: db
+  password: hello_django
+  port: 5432
+  username: hello_django
+django:
+  admin:
+    email: admin@admin.com
+    password: admin
+    username: admin
+  debug: true
+  hosts:
+    - "*"
+  secret_key: ab94ec351412c22324b2f635e0d6b9dd
+authentikate:
+  issuers:
+  - kind: jwks_uri
+    issuer: https://go.arkitekt.live
+    jwks_uri: https://go.arkitekt.live/lok/o/jwks/
+  static_tokens:
+    test:
+      sub: 1
+      iss: lok
+redis:   
+  host: redis
+  port: 6379
+scopes:
+  mikro_read: Read image from the database
+  mikro_write: Write image to the database

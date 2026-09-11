@@ -4,8 +4,8 @@ query Workspace($id: ID!) {
   }
 }
 
-query MyWorkspaces {
-  myworkspaces {
+query Workspaces($pagination: OffsetPaginationInput) {
+  workspaces(pagination: $pagination) {
     ...ListWorkspace
   }
 }

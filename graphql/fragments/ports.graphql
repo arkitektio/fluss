@@ -1,0 +1,298 @@
+fragment FlussStringAssignWidget on StringAssignWidget {
+  __typename
+  kind
+  placeholder
+  asParagraph
+}
+
+fragment FlussSliderAssignWidget on SliderAssignWidget {
+  __typename
+  kind
+  min
+  max
+}
+
+fragment FlussSearchAssignWidget on SearchAssignWidget {
+  __typename
+  kind
+  query
+  ward
+}
+
+fragment FlussActionArgumentLeaf on ActionArgument {
+  key
+  valueLiteral
+  valuePath
+  utilCall {
+    operation
+  }
+}
+
+fragment FlussActionArgumentNested on ActionArgument {
+  key
+  valueLiteral
+  valuePath
+  utilCall {
+    operation
+    arguments {
+      ...FlussActionArgumentLeaf
+    }
+  }
+  valueList {
+    ...FlussActionArgumentLeaf
+  }
+  valueDict {
+    ...FlussActionArgumentLeaf
+  }
+}
+
+fragment FlussActionArgument on ActionArgument {
+  key
+  valueLiteral
+  valuePath
+  utilCall {
+    operation
+    arguments {
+      ...FlussActionArgumentNested
+    }
+  }
+  valueList {
+    ...FlussActionArgumentNested
+  }
+  valueDict {
+    ...FlussActionArgumentNested
+  }
+}
+
+fragment FlussUtilCall on UtilCall {
+  operation
+  arguments {
+    ...FlussActionArgument
+  }
+}
+
+fragment FlussComponentProp on ComponentProp {
+  key
+  staticValue
+  dynamicValue {
+    literal
+    path
+  }
+  declaresValue
+  utilCall {
+    ...FlussUtilCall
+  }
+}
+
+fragment FlussCustomAssignWidget on CustomAssignWidget {
+  __typename
+  kind
+  component
+  props {
+    ...FlussComponentProp
+  }
+  dependencies
+}
+
+fragment FlussChoiceAssignWidget on ChoiceAssignWidget {
+  __typename
+  kind
+  choices {
+    value
+    label
+    description
+  }
+}
+
+fragment FlussChildArgPortNested on ArgPort {
+  __typename
+  kind
+  identifier
+  children {
+    kind
+    identifier
+    widget {
+      __typename
+      kind
+      ...FlussStringAssignWidget
+      ...FlussSearchAssignWidget
+      ...FlussSliderAssignWidget
+      ...FlussChoiceAssignWidget
+      ...FlussCustomAssignWidget
+    }
+  }
+  widget {
+    __typename
+    kind
+    ...FlussStringAssignWidget
+    ...FlussSearchAssignWidget
+    ...FlussSliderAssignWidget
+    ...FlussChoiceAssignWidget
+    ...FlussCustomAssignWidget
+  }
+}
+
+fragment FlussChildArgPort on ArgPort {
+  __typename
+  kind
+  identifier
+  children {
+    ...FlussChildArgPortNested
+  }
+  widget {
+    __typename
+    kind
+    ...FlussStringAssignWidget
+    ...FlussSearchAssignWidget
+    ...FlussSliderAssignWidget
+    ...FlussChoiceAssignWidget
+    ...FlussCustomAssignWidget
+  }
+  nullable
+}
+
+fragment FlussChildReturnPortNested on ReturnPort {
+  __typename
+  kind
+  identifier
+  children {
+    kind
+    identifier
+    widget {
+      __typename
+      kind
+      ...FlussCustomReturnWidget
+      ...FlussChoiceReturnWidget
+    }
+  }
+  widget {
+    __typename
+    kind
+    ...FlussCustomReturnWidget
+    ...FlussChoiceReturnWidget
+  }
+}
+
+fragment FlussChildReturnPort on ReturnPort {
+  __typename
+  kind
+  identifier
+  children {
+    ...FlussChildReturnPortNested
+  }
+  widget {
+    __typename
+    kind
+    ...FlussCustomReturnWidget
+    ...FlussChoiceReturnWidget
+  }
+  nullable
+}
+
+fragment FlussCustomEffect on CustomEffect {
+  __typename
+  kind
+}
+
+fragment FlussMessageEffect on MessageEffect {
+  __typename
+  kind
+  message
+}
+
+fragment Validator on Validator {
+  call {
+    ...FlussUtilCall
+  }
+  callJson
+  source
+  dependencies
+  label
+  errorMessage
+}
+
+fragment FlussArgPort on ArgPort {
+  __typename
+  key
+  label
+  nullable
+  description
+  effects {
+    kind
+    call {
+      ...FlussUtilCall
+    }
+    callJson
+    source
+    dependencies
+    ...FlussCustomEffect
+    ...FlussMessageEffect
+  }
+  widget {
+    __typename
+    kind
+    ...FlussStringAssignWidget
+    ...FlussSearchAssignWidget
+    ...FlussSliderAssignWidget
+    ...FlussChoiceAssignWidget
+    ...FlussCustomAssignWidget
+  }
+  kind
+  identifier
+  children {
+    ...FlussChildArgPort
+  }
+  default
+  validators {
+    ...Validator
+  }
+}
+
+fragment FlussReturnPort on ReturnPort {
+  __typename
+  key
+  label
+  nullable
+  description
+  effects {
+    kind
+    call {
+      ...FlussUtilCall
+    }
+    callJson
+    source
+    dependencies
+    ...FlussCustomEffect
+    ...FlussMessageEffect
+  }
+  widget {
+    __typename
+    kind
+    ...FlussCustomReturnWidget
+    ...FlussChoiceReturnWidget
+  }
+  kind
+  identifier
+  children {
+    ...FlussChildReturnPort
+  }
+  default
+}
+
+fragment FlussCustomReturnWidget on CustomReturnWidget {
+  __typename
+  kind
+  component
+  props {
+    ...FlussComponentProp
+  }
+}
+
+fragment FlussChoiceReturnWidget on ChoiceReturnWidget {
+  __typename
+  choices {
+    label
+    value
+    description
+  }
+}
