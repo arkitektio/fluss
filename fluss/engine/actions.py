@@ -106,7 +106,6 @@ def build_run_flow_definition(
         collections=(),
         portGroups=(),
         isTestFor=(),
-        interfaces=("flow_runner",),
     )
 
 

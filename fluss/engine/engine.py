@@ -27,7 +27,7 @@ from fluss.api.schema import (
 from rath.scalars import ID
 from rekuest.actors.base import Actor
 from rekuest.actors.helper import AssignmentHelper
-from rekuest.actors.vars import get_current_assignation_helper
+from rekuest.actors.vars import get_current_task_helper
 from rekuest.api.schema import acollect
 from rekuest.messages import Assign
 
@@ -73,7 +73,7 @@ async def arun_flow(
     """
     helper: Optional[AssignmentHelper] = None
     if assignment is None:
-        helper = get_current_assignation_helper()
+        helper = get_current_task_helper()
         assignment = helper.assignment
         if actor is None:
             actor = helper.actor
@@ -81,7 +81,7 @@ async def arun_flow(
     reference_counter = ReferenceCounter()
 
     run = await acreate_run(
-        assignation=ID.validate(assignment.assignation),
+        task_id=ID.validate(assignment.task),
         flow=flow.id,
         snapshot_interval=snapshot_interval,
     )

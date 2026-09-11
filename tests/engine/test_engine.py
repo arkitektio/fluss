@@ -12,9 +12,16 @@ import fluss.engine.engine as engine_module
 from fluss.engine.engine import arun_flow
 
 
-def make_port(key: str, kind: str = "INT", nullable: bool = False) -> Dict[str, Any]:
-    """Build a port dict."""
-    return {"__typename": "Port", "key": key, "kind": kind, "nullable": nullable}
+def make_port(
+    key: str, kind: str = "INT", nullable: bool = False, typename: str = "ArgPort"
+) -> Dict[str, Any]:
+    """Build a port dict.
+
+    The schema splits ports by direction, so the caller says which side this is:
+    `ins`, `constants`, `voids` and graph globals are ArgPorts, `outs` are
+    ReturnPorts. `make_node` stamps the right one on each list it is given.
+    """
+    return {"__typename": typename, "key": key, "kind": kind, "nullable": nullable}
 
 
 def make_node(
@@ -34,12 +41,19 @@ def make_node(
         "title": id,
         "description": "",
         "kind": kind,
-        "ins": ins,
-        "outs": outs,
+        "ins": _as(ins, "ArgPort"),
+        "outs": _as(outs, "ReturnPort"),
         "constants": [],
         "voids": [],
         **extra,
     }
+
+
+def _as(
+    streams: List[List[Dict[str, Any]]], typename: str
+) -> List[List[Dict[str, Any]]]:
+    """Stamp every port in a node's streams with its direction's typename."""
+    return [[{**port, "__typename": typename} for port in stream] for stream in streams]
 
 
 def make_flow(
@@ -185,14 +199,16 @@ class MockContract:
 
 @pytest.fixture
 def fake_assignment() -> Assign:
-    """A fake Assign message to drive the engine outside an assignation."""
+    """A fake Assign message to drive the engine outside a task."""
     return Assign(
         interface="run_flow",
         extension="test",
-        assignation="assignation-1",
+        task="task-1",
         user="user-1",
+        org="org-1",
         app="app-1",
         action="action-1",
+        implementation="implementation-1",
         args={},
     )
 
@@ -399,7 +415,6 @@ async def test_run_flow_action_is_registered() -> None:
     assert [port.key for port in implementation.definition.args] == ["flow", "kwargs"]
     assert implementation.definition.args[0].identifier == "@fluss/flow"
     assert [port.key for port in implementation.definition.returns] == ["returns"]
-    assert "flow_runner" in implementation.definition.interfaces
 
     builder = registry.actor_builders["run_flow"]
     assert builder.keywords["expand_inputs"] is False
