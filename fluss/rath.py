@@ -11,8 +11,8 @@ from rath.links.dictinglink import DictingLink
 from rath.links.shrink import ShrinkingLink
 from rath.links.split import SplitLink
 
-current_fluss_next_rath: contextvars.ContextVar[Optional["FlussRath"]] = contextvars.ContextVar(
-    "current_fluss_next_rath", default=None
+current_fluss_rath: contextvars.ContextVar[Optional["FlussRath"]] = contextvars.ContextVar(
+    "current_fluss_rath", default=None
 )
 
 
@@ -35,7 +35,7 @@ class FlussRath(rath.Rath):
     async def __aenter__(self) -> "FlussRath":
         """Set the current fluss next rath to this instance"""
         await super().__aenter__()
-        current_fluss_next_rath.set(self)
+        current_fluss_rath.set(self)
         return self
 
     async def __aexit__(
@@ -46,4 +46,4 @@ class FlussRath(rath.Rath):
     ) -> None:
         """Unset the current fluss next rath"""
         await super().__aexit__(exc_type, exc_val, exc_tb)
-        current_fluss_next_rath.set(None)
+        current_fluss_rath.set(None)

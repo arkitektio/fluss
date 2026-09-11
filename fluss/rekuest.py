@@ -1,10 +1,10 @@
-from rekuest_next.structures.default import (
+from rekuest.structures.default import (
     get_default_structure_registry,
     id_shrink,
 )
-from rekuest_next.widgets import SearchWidget
+from rekuest.widgets import SearchWidget
 
-from fluss_next.api.schema import (
+from fluss.api.schema import (
     Flow,
     SearchFlowsQuery,
     aget_flow,

@@ -6,7 +6,7 @@ allow you to execute queries and mutations using thre rekuest-rath client.
 """
 
 from typing import Any, Dict, Generator, AsyncGenerator, Type
-from fluss_next.rath import FlussRath, current_fluss_next_rath
+from fluss.rath import FlussRath, current_fluss_rath
 from koil import unkoil, unkoil_gen
 from rath.turms.funcs import TOperation
 from .errors import NoFlussFound
@@ -23,7 +23,7 @@ async def aexecute(
     operation: Type[TOperation], variables: Dict[str, Any], rath: FlussRath | None = None
 ) -> TOperation:
     """Executes a query or mutation using rath in a non-blocking way."""
-    rath = rath or current_fluss_next_rath.get()
+    rath = rath or current_fluss_rath.get()
     if not rath:
         raise NoFlussFound("No rath client found in context. Please provide a rath client.")
 
@@ -45,7 +45,7 @@ async def asubscribe(
     operation: Type[TOperation], variables: Dict[str, Any], rath: FlussRath | None = None
 ) -> AsyncGenerator[TOperation, None]:
     """Subscribes to a query or mutation using rath in a non-blocking way."""
-    rath = rath or current_fluss_next_rath.get()
+    rath = rath or current_fluss_rath.get()
     if not rath:
         raise NoFlussFound("No rath client found in context. Please provide a rath client.")
 

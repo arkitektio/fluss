@@ -1,5 +1,5 @@
 [project]
-name = "fluss-next"
+name = "fluss"
 version = "1.0.0-rc.1" 
 readme = "README.md"
 readme-content-type = "text/markdown"
@@ -8,6 +8,7 @@ description = "the next generation of Fluss, a Python library for workflow desig
 authors = [{ name = "jhnnsrs", email = "jhnnsrs@gmail.com" }]
 requires-python = ">=3.11, <4.0"
 license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 dependencies = [
     "rath>=3.5.1",
     "websockets>=15.0.1",
@@ -30,12 +31,12 @@ dev-dependencies =  [
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
     "dokker>=2",
-    "rekuest-next>=0.12.2",
+    "rekuest>=3",
     "basedpyright>=1.21",
 ]
 
 [tool.basedpyright]
-include = ["fluss_next"]
+include = ["fluss"]
 exclude = ["**/__pycache__", "tests"]
 typeCheckingMode = "standard"
 
@@ -72,10 +73,10 @@ exclude = [
 line-length = 100
 
 [tool.hatch.build.targets.sdist]
-include = ["fluss_next"]
+include = ["fluss"]
 
 [tool.hatch.build.targets.wheel]
-include = ["fluss_next"]
+include = ["fluss"]
 
 
 [build-system]

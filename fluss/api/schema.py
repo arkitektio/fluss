@@ -2,10 +2,10 @@
     
 from datetime import datetime
 from enum import Enum
-from fluss_next.funcs import aexecute, execute
-from fluss_next.rath import FlussRath
-from fluss_next.scalars import EventValue
-from fluss_next.traits import MockableTrait
+from fluss.funcs import aexecute, execute
+from fluss.rath import FlussRath
+from fluss.scalars import EventValue
+from fluss.traits import MockableTrait
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from rath.scalars import ID, IDCoercible
 from typing import Annotated, Any, Iterable, Literal
@@ -2075,7 +2075,7 @@ Args:
     graph:  (required)
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2101,7 +2101,7 @@ Args:
     graph:  (required)
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2127,7 +2127,7 @@ Args:
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     vanilla: The `Boolean` scalar type represents `true` or `false`. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2154,7 +2154,7 @@ Args:
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     vanilla: The `Boolean` scalar type represents `true` or `false`. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2179,7 +2179,7 @@ Args:
     flow: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     snapshot_interval: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
     task_id: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     CreateRunMutationCreateRun
@@ -2200,7 +2200,7 @@ Args:
     flow: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     snapshot_interval: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
     task_id: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     CreateRunMutationCreateRun
@@ -2219,7 +2219,7 @@ async def aclose_run(run: IDCoercible, rath: FlussRath | None=None) -> CloseRunM
 
 Args:
     run (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     CloseRunMutationCloseRun
@@ -2234,7 +2234,7 @@ def close_run(run: IDCoercible, rath: FlussRath | None=None) -> CloseRunMutation
 
 Args:
     run (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     CloseRunMutationCloseRun
@@ -2251,7 +2251,7 @@ Args:
     run: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     events: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required) (list) (required)
     t: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     SnapshotMutationSnapshot
@@ -2272,7 +2272,7 @@ Args:
     run: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     events: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required) (list) (required)
     t: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     SnapshotMutationSnapshot
@@ -2300,7 +2300,7 @@ Args:
     exception: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     handle: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     TrackMutationTrack
@@ -2340,7 +2340,7 @@ Args:
     exception: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     handle: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     TrackMutationTrack
@@ -2372,7 +2372,7 @@ Fetch a single flow by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Flow
@@ -2388,7 +2388,7 @@ Fetch a single flow by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Flow
@@ -2404,7 +2404,7 @@ List all flows in your organization.
 
 Args:
     limit (int | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ListFlow]
@@ -2421,7 +2421,7 @@ List all flows in your organization.
 
 Args:
     limit (int | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ListFlow]
@@ -2439,7 +2439,7 @@ List all flows in your organization.
 Args:
     search (str | None, optional): No description. 
     values (list[ID] | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[SearchFlowsQueryFlows]
@@ -2459,7 +2459,7 @@ List all flows in your organization.
 Args:
     search (str | None, optional): No description. 
     values (list[ID] | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[SearchFlowsQueryFlows]
@@ -2478,7 +2478,7 @@ List all reactive operator templates (a shared, global catalog).
 
 Args:
     pagination (OffsetPaginationInput | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ReactiveTemplate]
@@ -2495,7 +2495,7 @@ List all reactive operator templates (a shared, global catalog).
 
 Args:
     pagination (OffsetPaginationInput | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ReactiveTemplate]
@@ -2512,7 +2512,7 @@ Fetch a single reactive template by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ReactiveTemplate
@@ -2528,7 +2528,7 @@ Fetch a single reactive template by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ReactiveTemplate
@@ -2544,7 +2544,7 @@ Fetch a single run by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Run
@@ -2560,7 +2560,7 @@ Fetch a single run by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Run
@@ -2577,7 +2577,7 @@ List all runs in your organization.
 Args:
     search (str | None, optional): No description. 
     values (list[ID] | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[SearchRunsQueryRuns]
@@ -2597,7 +2597,7 @@ List all runs in your organization.
 Args:
     search (str | None, optional): No description. 
     values (list[ID] | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[SearchRunsQueryRuns]
@@ -2616,7 +2616,7 @@ Fetch a single workspace by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2632,7 +2632,7 @@ Fetch a single workspace by id.
 
 Args:
     id (ID): No description
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Workspace
@@ -2648,7 +2648,7 @@ List all workspaces in your organization.
 
 Args:
     pagination (OffsetPaginationInput | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ListWorkspace]
@@ -2665,7 +2665,7 @@ List all workspaces in your organization.
 
 Args:
     pagination (OffsetPaginationInput | None, optional): No description. 
-    rath (fluss_next.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
+    rath (fluss.rath.FlussRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     list[ListWorkspace]

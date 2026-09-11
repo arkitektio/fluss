@@ -1,6 +1,6 @@
 """Tests for the scalars module."""
 
-from fluss_next.scalars import NodeException
+from fluss.scalars import NodeException
 import pytest
 from pydantic import BaseModel
 

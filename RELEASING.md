@@ -1,6 +1,6 @@
-# Releasing fluss-next
+# Releasing fluss
 
-`fluss-next` ships as a PyPI package (`fluss-next`). Versioning is automated by
+`fluss` ships as a PyPI package (`fluss`). Versioning is automated by
 [python-semantic-release][psr] from [Conventional Commits][cc] — you never bump
 the version by hand. A push to a release branch runs
 `.github/workflows/release.yaml`, which:
@@ -26,11 +26,11 @@ a release on their own.
 
 | Branch | Releases | PyPI |
 | --- | --- | --- |
-| `main` | stable `X.Y.Z` | the default install (`pip install fluss-next`) |
-| `next` | prereleases `X.Y.Z-rc.N` | published as a **prerelease** — only reached via `pip install fluss-next --pre` or an exact pin |
+| `main` | stable `X.Y.Z` | the default install (`pip install fluss`) |
+| `next` | prereleases `X.Y.Z-rc.N` | published as a **prerelease** — only reached via `pip install fluss --pre` or an exact pin |
 | `N.x` (e.g. `1.x`) | maintenance `X.Y.Z` | published stable for an older major |
 
-PyPI marks `…-rc.N` versions as prereleases, so a plain `pip install fluss-next`
+PyPI marks `…-rc.N` versions as prereleases, so a plain `pip install fluss`
 never picks them up — `next` is a safe soak channel.
 
 ## Tag-based integration backend
@@ -80,11 +80,11 @@ also applies there.
 ## Consuming the next channel
 
 ```sh
-pip install fluss-next --pre          # latest rc (or stable, whichever is newer)
-pip install 'fluss-next==1.0.0-rc.1'  # pin a specific rc
+pip install fluss --pre          # latest rc (or stable, whichever is newer)
+pip install 'fluss==1.0.0-rc.1'  # pin a specific rc
 ```
 
-Stable consumers (`pip install fluss-next`) are unaffected by the `next` channel.
+Stable consumers (`pip install fluss`) are unaffected by the `next` channel.
 
 ## Dry-running locally
 

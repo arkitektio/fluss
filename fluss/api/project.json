@@ -4,7 +4,7 @@
     "extensions": {
         "turms": {
             "domain": null,
-            "out_dir": "fluss_next/api",
+            "out_dir": "fluss/api",
             "dump_configuration": true,
             "configuration_name": "project.json",
             "dump_schema": true,
@@ -27,7 +27,7 @@
                 "Any": "typing.Any",
                 "Arg": "typing.Any",
                 "ID": "rath.scalars.ID",
-                "EventValue": "fluss_next.scalars.EventValue",
+                "EventValue": "fluss.scalars.EventValue",
                 "ValueMap": "typing.Dict",
                 "AnyDefault": "typing.Any",
                 "Identifier": "str",
@@ -71,13 +71,13 @@
             "type_annotation_style": "auto",
             "additional_bases": {
                 "FlowGraph": [
-                    "fluss_next.traits.Graph"
+                    "fluss.traits.Graph"
                 ],
                 "StreamItem": [
-                    "fluss_next.traits.MockableTrait"
+                    "fluss.traits.MockableTrait"
                 ],
                 "StreamItemChild": [
-                    "fluss_next.traits.MockableTrait"
+                    "fluss.traits.MockableTrait"
                 ]
             },
             "additional_config": {},
@@ -107,7 +107,7 @@
                     ],
                     "global_kwargs": [
                         {
-                            "type": "fluss_next.rath.FlussRath",
+                            "type": "fluss.rath.FlussRath",
                             "key": "rath",
                             "description": "The client we want to use (defaults to the currently active client)"
                         }
@@ -116,29 +116,29 @@
                         {
                             "type": "subscription",
                             "is_async": true,
-                            "use": "fluss_next.funcs.asubscribe"
+                            "use": "fluss.funcs.asubscribe"
                         },
                         {
                             "type": "query",
                             "is_async": true,
-                            "use": "fluss_next.funcs.aexecute"
+                            "use": "fluss.funcs.aexecute"
                         },
                         {
                             "type": "mutation",
                             "is_async": true,
-                            "use": "fluss_next.funcs.aexecute"
+                            "use": "fluss.funcs.aexecute"
                         },
                         {
                             "type": "subscription",
-                            "use": "fluss_next.funcs.subscribe"
+                            "use": "fluss.funcs.subscribe"
                         },
                         {
                             "type": "query",
-                            "use": "fluss_next.funcs.execute"
+                            "use": "fluss.funcs.execute"
                         },
                         {
                             "type": "mutation",
-                            "use": "fluss_next.funcs.execute"
+                            "use": "fluss.funcs.execute"
                         }
                     ]
                 }

@@ -1,6 +1,6 @@
 """Tests for the inputs module."""
 
-from fluss_next.api.schema import ArgPortInput, PortKind
+from fluss.api.schema import ArgPortInput, PortKind
 
 
 def test_int_port() -> None:

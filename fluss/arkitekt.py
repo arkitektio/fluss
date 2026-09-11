@@ -1,14 +1,14 @@
 import json
 import os
-from fakts_next.contrib.rath.auth import FaktsAuthLink
-from fluss_next.fluss import Fluss
-from fluss_next.rath import FlussLinkComposition, FlussRath
+from fakts.contrib.rath.auth import FaktsAuthLink
+from fluss.fluss import Fluss
+from fluss.rath import FlussLinkComposition, FlussRath
 from rath.links.split import SplitLink
-from fakts_next.contrib.rath.aiohttp import FaktsAIOHttpLink
-from fakts_next.contrib.rath.graphql_ws import FaktsGraphQLWSLink
+from fakts.contrib.rath.aiohttp import FaktsAIOHttpLink
+from fakts.contrib.rath.graphql_ws import FaktsGraphQLWSLink
 from graphql import OperationType
-from fakts_next import Fakts
-from fakts_next.models import Requirement
+from fakts import Fakts
+from fakts.models import Requirement
 
 
 from arkitekt_next.service_registry import (

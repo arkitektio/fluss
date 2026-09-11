@@ -1,7 +1,7 @@
 """Test the fake workspace creation"""
 
 import pytest
-from fluss_next.api.schema import create_workspace
+from fluss.api.schema import create_workspace
 from dokker import Deployment
 
 

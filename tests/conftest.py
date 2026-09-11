@@ -3,11 +3,11 @@ import pytest
 from dokker import local, Deployment
 from dokker.log_watcher import LogWatcher
 import os
-from fluss_next.fluss import Fluss
+from fluss.fluss import Fluss
 from rath.links.auth import ComposedAuthLink
 from rath.links.aiohttp import AIOHttpLink
 from rath.links.graphql_ws import GraphQLWSLink
-from fluss_next.rath import (
+from fluss.rath import (
     FlussRath,
     SplitLink,
     FlussLinkComposition,

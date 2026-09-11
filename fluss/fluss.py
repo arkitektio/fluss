@@ -3,7 +3,7 @@
 from koil.composition import Composition
 from pydantic import Field
 
-from fluss_next.rath import FlussRath
+from fluss.rath import FlussRath
 
 
 class Fluss(Composition):
