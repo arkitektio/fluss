@@ -97,11 +97,8 @@ fragment FlussCustomAssignWidget on CustomAssignWidget {
 fragment FlussChoiceAssignWidget on ChoiceAssignWidget {
   __typename
   kind
-  choices {
-    value
-    label
-    description
-  }
+  followValue
+  placeholder
 }
 
 fragment FlussChildArgPortNested on ArgPort {
@@ -242,6 +239,11 @@ fragment FlussArgPort on ArgPort {
   children {
     ...FlussChildArgPort
   }
+  choices {
+    value
+    label
+    description
+  }
   default
   validators {
     ...Validator
@@ -276,7 +278,11 @@ fragment FlussReturnPort on ReturnPort {
   children {
     ...FlussChildReturnPort
   }
-  default
+  choices {
+    value
+    label
+    description
+  }
 }
 
 fragment FlussCustomReturnWidget on CustomReturnWidget {
@@ -290,9 +296,5 @@ fragment FlussCustomReturnWidget on CustomReturnWidget {
 
 fragment FlussChoiceReturnWidget on ChoiceReturnWidget {
   __typename
-  choices {
-    label
-    value
-    description
-  }
+  kind
 }
