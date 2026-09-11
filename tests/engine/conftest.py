@@ -8,7 +8,8 @@ from fluss.api.schema import (
     ReactiveImplementation,
     PortKind,
     GraphNodeKind,
-    FlussPort
+    FlussArgPort,
+    FlussReturnPort
     
 )
 
@@ -30,19 +31,19 @@ def reactive_zip_node() -> ReactiveNode:
         voids=[],
         ins=[
             [
-                FlussPort(
+                FlussArgPort(
                     key="x", kind=PortKind.INT, nullable=False,
                 )
             ],
             [
-                FlussPort(
+                FlussArgPort(
                     key="y", kind=PortKind.INT, nullable=False
                 )
             ],
         ],
         outs=[
             [
-                FlussPort(
+                FlussReturnPort(
                     key="return0", kind=PortKind.INT, nullable=False, 
                 )
             ]

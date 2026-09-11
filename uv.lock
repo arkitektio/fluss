@@ -367,7 +367,7 @@ wheels = [
 ]
 
 [[package]]
-name = "fluss-next"
+name = "fluss"
 version = "1.0.0rc1"
 source = { editable = "." }
 dependencies = [
@@ -378,6 +378,9 @@ dependencies = [
 [package.optional-dependencies]
 build = [
     { name = "uv" },
+]
+engine = [
+    { name = "rekuest" },
 ]
 
 [package.dev-dependencies]
@@ -392,17 +395,18 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "python-semantic-release" },
-    { name = "rekuest-next" },
+    { name = "rekuest" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "rath", specifier = ">=3.5.1" },
+    { name = "rekuest", marker = "extra == 'engine'", specifier = ">=3" },
     { name = "uv", marker = "extra == 'build'", specifier = ">=0.7.12" },
     { name = "websockets", specifier = ">=15.0.1" },
 ]
-provides-extras = ["build"]
+provides-extras = ["engine", "build"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -416,7 +420,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.26.0" },
     { name = "pytest-cov", specifier = ">=6.1.1" },
     { name = "python-semantic-release", specifier = ">=9.21.0" },
-    { name = "rekuest-next", specifier = ">=0.12.2" },
+    { name = "rekuest", specifier = ">=3" },
     { name = "ruff", specifier = ">=0.0.254" },
 ]
 
@@ -568,11 +572,11 @@ wheels = [
 
 [[package]]
 name = "janus"
-version = "1.2.0"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d8/1f/5100f13bc13e24a041f60757b097b3c7c31cf8a08c1c1ef1f1caa2516f22/janus-1.2.0.tar.gz", hash = "sha256:c03475c3e10e042f2a08d31a7a894df2a2a95845ff794b7265e7e9c10a425e5d", size = 21534, upload-time = "2024-12-12T23:59:54.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/7f/69884b6618be4baf6ebcacc716ee8680a842428a19f403db6d1c0bb990aa/janus-2.0.0.tar.gz", hash = "sha256:0970f38e0e725400496c834a368a67ee551dc3b5ad0a257e132f5b46f2e77770", size = 22910, upload-time = "2024-12-13T12:59:08.622Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/d6/6b3ac4df8d0e928521fe7d49cff8f3274b5012975ec0bdbb968ae50531aa/janus-1.2.0-py3-none-any.whl", hash = "sha256:3fa91456c00caed4905821a911e95c69d41306e463ea8da72c76c7a096abc698", size = 11674, upload-time = "2024-12-12T23:59:52.327Z" },
+    { url = "https://files.pythonhosted.org/packages/68/34/65604740edcb20e1bda6a890348ed7d282e7dd23aa00401cbe36fd0edbd9/janus-2.0.0-py3-none-any.whl", hash = "sha256:7e6449d34eab04cd016befbd7d8c0d8acaaaab67cb59e076a69149f9031745f9", size = 12161, upload-time = "2024-12-13T12:59:06.106Z" },
 ]
 
 [[package]]
@@ -610,15 +614,14 @@ wheels = [
 
 [[package]]
 name = "koil"
-version = "2.0.4"
+version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "janus" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/65/66a1e16e6565bcbf168d09c9275e2672c96cb0b8195dc8ba2d730c9fdd7e/koil-2.0.4.tar.gz", hash = "sha256:862a4d4e1ccccb29576f8a6a1e30c9f955b5549efb37b3747d48a0718736320a", size = 15677, upload-time = "2025-05-13T12:32:49.555Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c3/15/5f88e495d03f4a75a4b20ee174c34ebb4deba9c3431e8103164fa6e6683d/koil-3.3.2.tar.gz", hash = "sha256:0d8cdb2f96264d105376924a0ede2976f1c03750cef1a24519662e8f579a5257", size = 41955, upload-time = "2026-07-07T11:40:06.151Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/ab/81bae99a8523476642f6bed8283d71068eec3f83d730fcab4272deb94391/koil-2.0.4-py3-none-any.whl", hash = "sha256:a1cf12471446a8f95966269bec0ba1410f350fbd4709575643328b49dfa778b6", size = 19241, upload-time = "2025-05-13T12:32:47.902Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/ad/9c2553d38abcf601aa2a42c55659b84122263fc20401478407132ee89bd3/koil-3.3.2-py3-none-any.whl", hash = "sha256:4cbbebea4cf2357728ee81efd894cf63dddfb66d15805fb92f5cda8294b0cb2e", size = 48268, upload-time = "2026-07-07T11:40:05.217Z" },
 ]
 
 [[package]]
@@ -1092,35 +1095,36 @@ wheels = [
 
 [[package]]
 name = "rath"
-version = "3.5.1"
+version = "3.13.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "graphql-core" },
     { name = "koil" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/14/d1/66585d55053a4b013a7be130c4e16b0828eeebe743f78131e9dcd721b8c8/rath-3.5.1.tar.gz", hash = "sha256:94d661627700db006f3491469ac91389c40ca612518a387f26820d19d855f3e9", size = 32743, upload-time = "2025-07-08T19:33:45.037Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/88/d1c0b59a1d0773aa46f1cf562f9742d730fe45e8330a2d69a1a12df31265/rath-3.13.0.tar.gz", hash = "sha256:d58217113f86236bad59abd24ecd8be37fe2d9595e85fc11aacdddaf25acaa02", size = 38693, upload-time = "2026-09-01T21:50:24.067Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/83/a7fbe223d6d52c2f6895c01ec07c4fd119a632d9d0b33be4834408527a9c/rath-3.5.1-py3-none-any.whl", hash = "sha256:402069e6c5c1a35bf2f611ee527249cfa608c519a6c432745b4afd01fa5ea64e", size = 48234, upload-time = "2025-07-08T19:33:43.634Z" },
+    { url = "https://files.pythonhosted.org/packages/35/6f/26ab306dcaaddf9b8a4aa9709f58184e9f842efb53aeff79b02e91dc9c41/rath-3.13.0-py3-none-any.whl", hash = "sha256:58dc80a3ea56795589a21d52fcd0e88c6853ec77b8c06214cd2ba7a225f94eb2", size = 55972, upload-time = "2026-09-01T21:50:23.015Z" },
 ]
 
 [[package]]
-name = "rekuest-next"
-version = "0.12.2"
+name = "rekuest"
+version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
     { name = "fieldz" },
     { name = "inflection" },
+    { name = "janus" },
     { name = "jsonpatch" },
     { name = "koil" },
     { name = "pydantic" },
     { name = "rath" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/83/e93d32ec2b7b45c5ba0cac6232651ff5cede9485e9d2792c610bee86aa36/rekuest_next-0.12.2.tar.gz", hash = "sha256:a4e98ce24882d37ec41614edc49320a89088066522be2e6660e7a54286703426", size = 103585, upload-time = "2025-07-08T18:56:33.457Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/88/b732e84fe8592da00c8e7522c428d0378d731bfdd7f62b9c5871a4eede23/rekuest-3.0.0.tar.gz", hash = "sha256:87959541bb6abb3438594ee22a8e8553afcb600586779d96845df5d60d92fc8d", size = 306009, upload-time = "2026-09-11T12:58:42.812Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/c2/58fc1155cfe1be78dab69a7260e06c5cca44acd3cb2d694d6dec866c1fd4/rekuest_next-0.12.2-py3-none-any.whl", hash = "sha256:91532b0ac045abe219cc5747a7e47fb357790c647853002e18509d4c96fed8d6", size = 140037, upload-time = "2025-07-08T18:56:32.165Z" },
+    { url = "https://files.pythonhosted.org/packages/93/a9/9b804104285d3aecc21f6c47abd1a1cd4c31a8f6b154f79d1cf413c0eb08/rekuest-3.0.0-py3-none-any.whl", hash = "sha256:a7effe7c994e50d0e2c4e44c5d419401a3a75f40d4b859f0be37fdf0831a6836", size = 373106, upload-time = "2026-09-11T12:58:41.49Z" },
 ]
 
 [[package]]

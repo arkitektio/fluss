@@ -13,7 +13,7 @@ from fluss.engine.engine import arun_flow
 
 
 def make_port(key: str, kind: str = "INT", nullable: bool = False) -> Dict[str, Any]:
-    """Build a FlussPort dict."""
+    """Build a port dict."""
     return {"__typename": "Port", "key": key, "kind": kind, "nullable": nullable}
 
 
