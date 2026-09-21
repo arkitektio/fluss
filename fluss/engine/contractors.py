@@ -3,7 +3,7 @@ from fluss.engine.rpc_contract import DirectContract, RPCContract
 from fluss.api.schema import (
     RekuestActionNodeBase,
 )
-from rekuest.rekuest import Rekuest
+from rekuest.client.client import Rekuest
 
 
 @runtime_checkable

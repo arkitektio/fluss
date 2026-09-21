@@ -13,7 +13,7 @@ from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 
 from fluss.api.schema import Flow
 from fluss.fluss import Fluss
-from rekuest.rekuest import Rekuest
+from rekuest.client.client import Rekuest
 from rekuest.task import Task
 from rath.scalars import ID
 from rekuest.actors.actify import derive_implementation_details

@@ -41,7 +41,7 @@ from fluss.engine.rpc_contract import RPCContract
 from fluss.engine.utils import connected_events
 
 if TYPE_CHECKING:
-    from rekuest.rekuest import Rekuest
+    from rekuest.client.client import Rekuest
     from rekuest.task import Task
 
     from fluss.fluss import Fluss
