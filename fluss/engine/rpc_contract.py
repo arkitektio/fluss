@@ -61,7 +61,7 @@ class DirectContract(KoiledModel):
     action: Action
     reference: str
     rekuest: Any
-    """The rekuest client (a view for the running task) the calls go through."""
+    """The rekuest client the calls go through."""
 
     async def __aexit__(
         self,
