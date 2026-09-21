@@ -24,7 +24,7 @@ from rekuest.actors.types import (
     ImplementationDetails,
     RegisterConfig,
 )
-from rekuest.api.schema import (
+from rekuest.protocol.schema import (
     ActionKind,
     ArgPortInput,
     DefinitionInput,
