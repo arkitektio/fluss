@@ -10,7 +10,7 @@ requires-python = ">=3.11, <4.0"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 dependencies = [
-    "rath>=3.5.1",
+    "rath>=4",
     "websockets>=15.0.1",
 ]
 
@@ -19,7 +19,7 @@ dependencies = [
 # imports rekuest unguarded, so it needs it present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=3"]
+engine = ["rekuest>=4"]
 
 
 [tool.uv]
@@ -34,7 +34,7 @@ dev-dependencies =  [
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
     "dokker>=2",
-    "rekuest>=3",
+    "rekuest>=4",
     "basedpyright>=1.21",
 ]
 
