@@ -5,10 +5,10 @@ import itertools
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import pytest
+from types import SimpleNamespace
 from fluss.api.schema import Flow
 from rekuest.messages import Assign
 
-import fluss.engine.engine as engine_module
 from fluss.engine.engine import arun_flow
 
 
@@ -214,15 +214,15 @@ def fake_assignment() -> Assign:
 
 
 @pytest.fixture
-def fluss_calls(monkeypatch: pytest.MonkeyPatch) -> Dict[str, List[Any]]:
-    """Stub out the fluss run-tracking API in the engine's namespace."""
-    calls: Dict[str, List[Any]] = {
+def fluss_calls() -> Dict[str, List[Any]]:
+    """Fake fluss and rekuest clients, recording the run-tracking calls made on them."""
+    calls: Dict[str, List[Any]] = _Calls({
         "create": [],
         "track": [],
         "snapshot": [],
         "close": [],
         "collect": [],
-    }
+    })
 
     counter = itertools.count()
 
@@ -250,21 +250,25 @@ def fluss_calls(monkeypatch: pytest.MonkeyPatch) -> Dict[str, List[Any]]:
     async def acollect(references: List[str]) -> None:
         calls["collect"].append(references)
 
-    monkeypatch.setattr(engine_module, "acreate_run", acreate_run)
-    monkeypatch.setattr(engine_module, "atrack", atrack)
-    monkeypatch.setattr(engine_module, "asnapshot", asnapshot)
-    monkeypatch.setattr(engine_module, "aclose_run", aclose_run)
-    monkeypatch.setattr(engine_module, "acollect", acollect)
+    # Handed to the engine as its clients; nothing is patched.
+    calls.fluss = SimpleNamespace(  # type: ignore[attr-defined]
+        acreate_run=acreate_run, atrack=atrack, asnapshot=asnapshot, aclose_run=aclose_run
+    )
+    calls.rekuest = SimpleNamespace(acollect=acollect)  # type: ignore[attr-defined]
     return calls
 
 
 def make_contractor(contract: MockContract) -> Any:
     """A contractor that hands the given contract to every rekuest node."""
 
-    async def contractor(node: Any, actor: Any) -> MockContract:
+    async def contractor(node: Any, rekuest: Any) -> MockContract:
         return contract
 
     return contractor
+
+
+class _Calls(dict):
+    """The recorded calls, plus the fake clients that record them."""
 
 
 async def run_to_list(
@@ -272,6 +276,7 @@ async def run_to_list(
     kwargs: Dict[str, Any],
     contract: MockContract,
     assignment: Assign,
+    clients: Any,  # noqa: ANN401
 ) -> List[Dict[str, Any]]:
     """Drive arun_flow to completion and collect the yielded dicts."""
     return [
@@ -279,6 +284,8 @@ async def run_to_list(
         async for returns in arun_flow(
             flow,
             kwargs,
+            fluss=clients.fluss,
+            rekuest=clients.rekuest,
             contractor=make_contractor(contract),
             assignment=assignment,
             actor=None,
@@ -293,7 +300,7 @@ async def test_function_flow_yields_once(
     """A function flow yields a single dict keyed by the return port keys."""
     contract = MockContract(call_result={"return0": 2})
 
-    results = await run_to_list(make_flow(), {"x": 1}, contract, fake_assignment)
+    results = await run_to_list(make_flow(), {"x": 1}, contract, fake_assignment, fluss_calls)
 
     assert results == [{"out": 2}]
     assert contract.calls == [{"x": 1}]
@@ -311,7 +318,7 @@ async def test_generator_flow_yields_multiple(
     contract = MockContract(iterate_results=[{"return0": 1}, {"return0": 2}])
 
     results = await run_to_list(
-        make_flow(action_kind="GENERATOR"), {"x": 1}, contract, fake_assignment
+        make_flow(action_kind="GENERATOR"), {"x": 1}, contract, fake_assignment, fluss_calls
     )
 
     assert results == [{"out": 1}, {"out": 2}]
@@ -330,7 +337,7 @@ async def test_globals_are_passed_to_nodes(
     )
     contract = MockContract(call_result={"return0": 10})
 
-    results = await run_to_list(flow, {"x": 1, "scale": 10}, contract, fake_assignment)
+    results = await run_to_list(flow, {"x": 1, "scale": 10}, contract, fake_assignment, fluss_calls)
 
     assert results == [{"out": 10}]
     assert contract.calls == [{"scale": 10, "x": 1}]
@@ -344,7 +351,7 @@ async def test_missing_stream_key_raises(
     contract = MockContract(call_result={"return0": 2})
 
     with pytest.raises(ValueError, match="Stream key x not found"):
-        await run_to_list(make_flow(), {}, contract, fake_assignment)
+        await run_to_list(make_flow(), {}, contract, fake_assignment, fluss_calls)
 
     assert len(fluss_calls["close"]) == 1
     assert contract.exited
@@ -364,7 +371,7 @@ async def test_missing_global_key_raises(
     contract = MockContract(call_result={"return0": 2})
 
     with pytest.raises(ValueError, match="Global key scale not found"):
-        await run_to_list(flow, {"x": 1}, contract, fake_assignment)
+        await run_to_list(flow, {"x": 1}, contract, fake_assignment, fluss_calls)
 
 
 @pytest.mark.asyncio
@@ -375,7 +382,7 @@ async def test_node_error_propagates(
     contract = MockContract(error=RuntimeError("boom"))
 
     with pytest.raises(RuntimeError, match="boom"):
-        await run_to_list(make_flow(), {"x": 1}, contract, fake_assignment)
+        await run_to_list(make_flow(), {"x": 1}, contract, fake_assignment, fluss_calls)
 
     assert len(fluss_calls["close"]) == 1
     assert contract.exited
@@ -389,7 +396,7 @@ async def test_cancellation_cleans_up(
     contract = MockContract(hang=True)
 
     task = asyncio.create_task(
-        run_to_list(make_flow(), {"x": 1}, contract, fake_assignment)
+        run_to_list(make_flow(), {"x": 1}, contract, fake_assignment, fluss_calls)
     )
     await asyncio.sleep(0.2)
     task.cancel()
@@ -404,11 +411,18 @@ async def test_cancellation_cleans_up(
 
 @pytest.mark.asyncio
 async def test_run_flow_action_is_registered() -> None:
-    """Importing fluss.engine registers run_flow in the default app registry."""
-    import fluss.engine  # noqa: F401
-    from rekuest.app import get_default_app_registry
+    """run_flow goes into the registry it is handed, not into a process-wide one.
 
-    registry = get_default_app_registry()
+    `FlussService.register_implementations` is the caller in a real app; that
+    wiring is tested on the arkitekt side, which is where fakts is installed.
+    """
+    from fluss.arkitekt import registry as package
+    from rekuest.app import AppRegistry
+
+    # What an app does with `fluss_service`: take the package registry in.
+    registry = AppRegistry()
+    registry.merge(package)
+
     implementation = registry.implementations["run_flow"]
 
     assert implementation.definition.kind == "GENERATOR"
@@ -420,3 +434,10 @@ async def test_run_flow_action_is_registered() -> None:
     assert builder.keywords["expand_inputs"] is False
     assert builder.keywords["shrink_outputs"] is False
     assert builder.keywords["concurrency"] == "parallel"
+
+    # The builder baked the *package's* structures in; a run is served from its
+    # own snapshot, never from the module-level registry every app shares.
+    snapshot = registry.snapshot()
+    served = snapshot.actor_builders["run_flow"]
+    assert served.keywords["structure_registry"] is snapshot.structure_registry
+    assert builder.keywords["structure_registry"] is package.structure_registry

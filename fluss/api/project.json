@@ -98,48 +98,16 @@
                     "type": "turms.plugins.operations.OperationsPlugin"
                 },
                 {
-                    "type": "turms.plugins.funcs.FuncsPlugin",
+                    "type": "turms.plugins.client.ClientPlugin",
+                    "client_class": "FlussApi",
+                    "reserved_from": [
+                        "fluss.fluss.Fluss"
+                    ],
                     "coercible_scalars": {
                         "ID": "rath.scalars.IDCoercible"
                     },
                     "expand_input_types": [
                         "input"
-                    ],
-                    "global_kwargs": [
-                        {
-                            "type": "fluss.rath.FlussRath",
-                            "key": "rath",
-                            "description": "The client we want to use (defaults to the currently active client)"
-                        }
-                    ],
-                    "definitions": [
-                        {
-                            "type": "subscription",
-                            "is_async": true,
-                            "use": "fluss.funcs.asubscribe"
-                        },
-                        {
-                            "type": "query",
-                            "is_async": true,
-                            "use": "fluss.funcs.aexecute"
-                        },
-                        {
-                            "type": "mutation",
-                            "is_async": true,
-                            "use": "fluss.funcs.aexecute"
-                        },
-                        {
-                            "type": "subscription",
-                            "use": "fluss.funcs.subscribe"
-                        },
-                        {
-                            "type": "query",
-                            "use": "fluss.funcs.execute"
-                        },
-                        {
-                            "type": "mutation",
-                            "use": "fluss.funcs.execute"
-                        }
                     ]
                 }
             ],

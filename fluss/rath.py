@@ -1,8 +1,6 @@
 from types import TracebackType
-from typing import Optional
 from pydantic import Field
 from rath import rath
-import contextvars
 
 from rath.links.auth import AuthTokenLink
 
@@ -10,10 +8,6 @@ from rath.links.compose import TypedComposedLink
 from rath.links.dictinglink import DictingLink
 from rath.links.shrink import ShrinkingLink
 from rath.links.split import SplitLink
-
-current_fluss_rath: contextvars.ContextVar[Optional["FlussRath"]] = contextvars.ContextVar(
-    "current_fluss_rath", default=None
-)
 
 
 class FlussLinkComposition(TypedComposedLink):
@@ -33,9 +27,13 @@ class FlussRath(rath.Rath):
     """
 
     async def __aenter__(self) -> "FlussRath":
-        """Set the current fluss next rath to this instance"""
+        """Enter the client.
+
+        Entering does not make it "the current client": only the fluss service
+        that owns it becomes current, while it is entered.
+        A rath used on its own is passed where it is needed, as ``rath=``.
+        """
         await super().__aenter__()
-        current_fluss_rath.set(self)
         return self
 
     async def __aexit__(
@@ -44,6 +42,5 @@ class FlussRath(rath.Rath):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        """Unset the current fluss next rath"""
+        """Exit the client"""
         await super().__aexit__(exc_type, exc_val, exc_tb)
-        current_fluss_rath.set(None)

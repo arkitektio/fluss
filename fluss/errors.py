@@ -1,4 +1,4 @@
-"""Custom exceptions for the Fluss Next application."""
+"""Custom exceptions for the Fluss application."""
 
 
 class NoFlussFound(Exception):

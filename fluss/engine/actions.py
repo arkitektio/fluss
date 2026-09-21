@@ -11,7 +11,10 @@ cannot be expressed through signature inference.
 from functools import partial
 from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 
-from fluss.api.schema import Flow, aget_flow
+from fluss.api.schema import Flow
+from fluss.fluss import Fluss
+from rekuest.rekuest import Rekuest
+from rekuest.task import Task
 from rath.scalars import ID
 from rekuest.actors.actify import derive_implementation_details
 from rekuest.actors.functional import GEN, FunctionalActor
@@ -34,7 +37,11 @@ from fluss.engine.engine import arun_flow
 
 
 async def run_flow(
-    flow: str, kwargs: Dict[str, Any]
+    flow: str,
+    kwargs: Dict[str, Any],
+    fluss: Fluss,
+    rekuest: Rekuest,
+    task: Task,
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """Run Flow
 
@@ -43,9 +50,11 @@ async def run_flow(
     flow's return port keys.
     """
     # Inputs arrive unexpanded (bypass_expand), so the flow port is a raw ID.
-    resolved = await aget_flow(id=ID.validate(flow))
+    resolved = await fluss.aget_flow(id=ID.validate(flow))
 
-    async for returns in arun_flow(resolved, kwargs or {}):
+    async for returns in arun_flow(
+        resolved, kwargs or {}, fluss=fluss, rekuest=rekuest, task=task
+    ):
         yield returns
 
 
@@ -118,7 +127,7 @@ def flow_actifier(
     definition instead of a signature-derived one."""
     config = config or RegisterConfig()
 
-    implementation_details = derive_implementation_details(function, config)
+    implementation_details = derive_implementation_details(function, config, structure_registry)
     definition = build_run_flow_definition(structure_registry)
 
     return (
@@ -132,12 +141,7 @@ def flow_actifier(
             shrink_outputs=False,
             structure_registry=structure_registry,
             definition=definition,
-            state_variables=implementation_details.state_variables,
-            state_returns=implementation_details.state_returns,
-            context_variables=implementation_details.context_variables,
-            context_returns=implementation_details.context_returns,
-            dependency_variables=implementation_details.dependency_variables,
-            locks=implementation_details.locks,
+            **implementation_details.actor_kwargs(),
             concurrency=config.concurrency,
         ),
     )

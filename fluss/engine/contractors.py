@@ -3,24 +3,23 @@ from fluss.engine.rpc_contract import DirectContract, RPCContract
 from fluss.api.schema import (
     RekuestActionNodeBase,
 )
-from rekuest.api.schema import afind
-from rekuest.actors.base import Actor
+from rekuest.rekuest import Rekuest
 
 
 @runtime_checkable
 class NodeContractor(Protocol):
     async def __call__(
-        self, node: RekuestActionNodeBase, actor: Actor
+        self, node: RekuestActionNodeBase, rekuest: Rekuest
     ) -> RPCContract: ...
 
 
-async def arkicontractor(node: RekuestActionNodeBase, actor: Actor) -> RPCContract:
+async def arkicontractor(node: RekuestActionNodeBase, rekuest: Rekuest) -> RPCContract:
     """A contractor that can either spawn local, actors
     of use remote actors to perform the task
 
 
     """
 
-    action = await afind(hash=node.hash)
+    action = await rekuest.afind(hash=node.hash)
 
-    return DirectContract(action=action, reference=node.id)
+    return DirectContract(action=action, reference=node.id, rekuest=rekuest)

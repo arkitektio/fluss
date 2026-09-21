@@ -3,7 +3,6 @@ from typing import Any, AsyncGenerator, Dict, Optional, Protocol, runtime_checka
 from koil.composition.base import KoiledModel
 from rekuest.api.schema import Action
 from rekuest.messages import Assign
-from rekuest.remote import acall_raw, aiterate_raw
 
 
 @runtime_checkable
@@ -61,6 +60,8 @@ class DirectContract(KoiledModel):
 
     action: Action
     reference: str
+    rekuest: Any
+    """The rekuest client (a view for the running task) the calls go through."""
 
     async def __aexit__(
         self,
@@ -81,13 +82,13 @@ class DirectContract(KoiledModel):
         """Call the function or generator in a blocking or non-blocking way.
         This method should be implemented by the subclass.
         """
-        return await acall_raw(
+        # assign_timeout/timeout_is_recoverable are part of the contract protocol,
+        # but the rekuest call has no such options; they were never delivered.
+        return await self.rekuest.acall_raw(
             kwargs=kwargs,
             action=self.action,
             parent=parent,
             reference=reference,
-            assign_timeout=assign_timeout,
-            timeout_is_recoverable=timeout_is_recoverable,
         )
 
     def aiterate_raw(
@@ -101,13 +102,11 @@ class DirectContract(KoiledModel):
         """Call the function or generator in a blocking or non-blocking way.
         This method should be implemented by the subclass.
         """
-        return aiterate_raw(
+        return self.rekuest.aiterate_raw(
             kwargs=kwargs,
             action=self.action,
             parent=parent,
             reference=reference,
-            assign_timeout=assign_timeout,
-            timeout_is_recoverable=timeout_is_recoverable,
         )
 
     async def aenter(self) -> "DirectContract":

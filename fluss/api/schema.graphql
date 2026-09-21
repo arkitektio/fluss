@@ -744,7 +744,9 @@ input FlowFilter {
   """Filter by a list of IDs"""
   ids: [ID!]
 
-  """Search by title (case-insensitive substring)"""
+  """
+  Search by title (case-insensitive substring) or by the meaning of the query against title and description. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking
+  """
   search: String
 
   """Filter for items created before this datetime"""
@@ -916,8 +918,8 @@ input GraphNodeInput {
   outs: [[ReturnPortInput!]!] = null
   constants: [ArgPortInput!] = null
   voids: [ArgPortInput!] = []
-  constantsMap: ValueMap = {}
-  globalsMap: ValueMap = {}
+  constantsMap: ValueMap = null
+  globalsMap: ValueMap = null
   description: String = null
   title: String = null
   retries: Int = null
@@ -2244,7 +2246,9 @@ input WorkspaceFilter {
   """Filter by a list of IDs"""
   ids: [ID!]
 
-  """Search by title (case-insensitive substring)"""
+  """
+  Search by title (case-insensitive substring) or by the meaning of the query against title and description. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking
+  """
   search: String
 
   """Filter for items created before this datetime"""

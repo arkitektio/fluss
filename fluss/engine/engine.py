@@ -9,7 +9,7 @@ when the engine is driven through the registered ``run_flow`` action).
 
 import asyncio
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional
 
 from fluss.api.schema import (
     ArgNode,
@@ -19,16 +19,9 @@ from fluss.api.schema import (
     ReturnNode,
     RunEventKind,
     TrackMutationTrack,
-    aclose_run,
-    acreate_run,
-    asnapshot,
-    atrack,
 )
 from rath.scalars import ID
 from rekuest.actors.base import Actor
-from rekuest.actors.helper import AssignmentHelper
-from rekuest.actors.vars import get_current_task_helper
-from rekuest.api.schema import acollect
 from rekuest.messages import Assign
 
 from fluss.engine.atoms.transport import AtomTransport
@@ -47,6 +40,12 @@ from fluss.engine.reference_counter import ReferenceCounter
 from fluss.engine.rpc_contract import RPCContract
 from fluss.engine.utils import connected_events
 
+if TYPE_CHECKING:
+    from rekuest.rekuest import Rekuest
+    from rekuest.task import Task
+
+    from fluss.fluss import Fluss
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_SNAPSHOT_INTERVAL = 40
@@ -56,9 +55,12 @@ async def arun_flow(
     flow: Flow,
     kwargs: Dict[str, Any],
     *,
+    fluss: "Fluss",
+    rekuest: "Rekuest",
+    task: Optional["Task"] = None,
+    assignment: Optional[Assign] = None,
     contractor: NodeContractor = arkicontractor,
     snapshot_interval: int = DEFAULT_SNAPSHOT_INTERVAL,
-    assignment: Optional[Assign] = None,
     actor: Optional[Actor] = None,
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """Run a flow and yield its return dicts as they are produced.
@@ -67,20 +69,19 @@ async def arun_flow(
     keyed by port key, in raw (shrunk) form. Each value reaching the flow's
     return node is yielded as ``{return_port_key: value}``.
 
-    ``assignment``/``actor`` default to the surrounding assignation context
-    (the registered action path); pass them explicitly to drive the engine
-    outside an assignation, e.g. in tests.
+    Everything is passed in: ``fluss`` records the run, ``rekuest`` (a view for
+    the running task, so child calls are its children) calls the flow's actions,
+    and ``task`` is the task the run belongs to. Outside a task pass
+    ``assignment`` instead, e.g. in tests; there are no pause points then.
     """
-    helper: Optional[AssignmentHelper] = None
+    if task is not None:
+        assignment = task.assignment
     if assignment is None:
-        helper = get_current_task_helper()
-        assignment = helper.assignment
-        if actor is None:
-            actor = helper.actor
+        raise ValueError("A flow runs for a task: pass task= (or assignment=).")
 
     reference_counter = ReferenceCounter()
 
-    run = await acreate_run(
+    run = await fluss.acreate_run(
         task_id=ID.validate(assignment.task),
         flow=flow.id,
         snapshot_interval=snapshot_interval,
@@ -97,10 +98,10 @@ async def arun_flow(
             x for x in flow.graph.nodes if isinstance(x, RekuestActionNodeBase)
         ]
 
-        contracts = {node.id: await contractor(node, actor) for node in rekuest_nodes}
+        contracts = {node.id: await contractor(node, rekuest) for node in rekuest_nodes}
         await asyncio.gather(*[contract.aenter() for contract in contracts.values()])
 
-        await asnapshot(run=run.id, events=list(state.values()), t=t)
+        await fluss.asnapshot(run=run.id, events=list(state.values()), t=t)
 
         event_queue: asyncio.Queue[OutEvent] = asyncio.Queue()
 
@@ -236,12 +237,12 @@ async def arun_flow(
         complete = False
 
         while not complete:
-            if helper is not None:
-                await helper.abreakpoint()
+            if task is not None:
+                await task.apausepoint()
             event: OutEvent = await event_queue.get()
             event_queue.task_done()
 
-            track = await atrack(
+            track = await fluss.atrack(
                 reference=event.source + "_track_" + str(t),
                 run=run,
                 source=event.source,
@@ -259,7 +260,7 @@ async def arun_flow(
             # We tracked the events and proceed
 
             if t % snapshot_interval == 0:
-                await asnapshot(run=run, events=list(state.values()), t=t)
+                await fluss.asnapshot(run=run, events=list(state.values()), t=t)
 
             # Create new events with the new timepoint
             spawned_events = connected_events(flow.graph, event, t)
@@ -273,7 +274,7 @@ async def arun_flow(
                 logger.info(f"-> {spawned_event}")
 
                 if spawned_event.target == returnNode.id:
-                    track = await atrack(
+                    track = await fluss.atrack(
                         reference=event.source + "_track_" + str(t),
                         run=run,
                         source=spawned_event.target,
@@ -307,7 +308,7 @@ async def arun_flow(
                         raise spawned_event.exception
 
                     if spawned_event.type == EventType.COMPLETE:
-                        await asnapshot(run=run, events=list(state.values()), t=t)
+                        await fluss.asnapshot(run=run, events=list(state.values()), t=t)
                         complete = True
 
                         logger.info("Done ! :)")
@@ -319,12 +320,12 @@ async def arun_flow(
                     await atoms[spawned_event.target].put(spawned_event)
 
     except asyncio.CancelledError:
-        await asnapshot(run=run, events=list(state.values()), t=t)
+        await fluss.asnapshot(run=run, events=list(state.values()), t=t)
         raise
 
     except Exception:
         logging.critical(f"Assignation {assignment} failed", exc_info=True)
-        await asnapshot(run=run, events=list(state.values()), t=t)
+        await fluss.asnapshot(run=run, events=list(state.values()), t=t)
         raise
 
     finally:
@@ -338,8 +339,8 @@ async def arun_flow(
         except asyncio.TimeoutError:
             pass
 
-        await acollect(list(reference_counter.references))
-        await aclose_run(run=run.id)
+        await rekuest.acollect(list(reference_counter.references))
+        await fluss.aclose_run(run=run.id)
         await asyncio.gather(
             *[contract.aexit() for contract in contracts.values()],
             return_exceptions=True,

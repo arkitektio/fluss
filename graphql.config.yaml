@@ -27,33 +27,18 @@ projects:
           - type: turms.plugins.inputs.InputsPlugin
           - type: turms.plugins.fragments.FragmentsPlugin
           - type: turms.plugins.operations.OperationsPlugin
-          - type: turms.plugins.funcs.FuncsPlugin
+          - type: turms.plugins.client.ClientPlugin
+            # Every operation is a method of FlussApi, which Fluss mixes in.
+            # Each method hands its operation to execute/aexecute/subscribe/asubscribe
+            # of self, which Fluss implements over its rath.
+            client_class: FlussApi
+            # The client's own attributes: pydantic lets a field hide a method.
+            reserved_from:
+              - fluss.fluss.Fluss
             coercible_scalars:
               ID: rath.scalars.IDCoercible
             expand_input_types:
               - input
-            global_kwargs:
-              - type: fluss.rath.FlussRath
-                key: rath
-                description:
-                  The client we want to use (defaults to the currently active
-                  client)
-            definitions:
-              - type: subscription
-                is_async: true
-                use: fluss.funcs.asubscribe
-              - type: query
-                is_async: true
-                use: fluss.funcs.aexecute
-              - type: mutation
-                is_async: true
-                use: fluss.funcs.aexecute
-              - type: subscription
-                use: fluss.funcs.subscribe
-              - type: query
-                use: fluss.funcs.execute
-              - type: mutation
-                use: fluss.funcs.execute
         processors:
           - type: turms.processors.disclaimer.DisclaimerProcessor
         scalar_definitions:

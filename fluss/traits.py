@@ -1,4 +1,4 @@
-"""Traits for Fluss Next"""
+"""Traits for Fluss"""
 
 
 class MockableTrait:
