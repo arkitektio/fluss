@@ -40,8 +40,10 @@ def deployed_app() -> Generator[DeployedFluss, None, None]:
     """A fixture that deploys the Fluss application using Docker Compose."""
 
     setup = local(docker_compose_file)
-    setup.pull_on_enter = False
-    setup.up_on_enter = False
+    # No `pull_on_enter`/`up_on_enter`: dokker 2.8 made entering a Deployment do
+    # nothing at all, so there is no on-enter behaviour left to switch off. The
+    # body below drives the lifecycle explicitly, which is what those flags were
+    # protecting. Setting them now raises, because the fields are gone.
     setup.add_health_check(
         url=lambda spec: f"http://localhost:{spec.find_service('fluss').get_port_for_internal(80).published}/graphql",
         service="fluss",
@@ -52,7 +54,12 @@ def deployed_app() -> Generator[DeployedFluss, None, None]:
     watcher = setup.create_watcher("fluss")
 
     with setup:
+        # dokker >= 2.6 does nothing on enter, so the spec has to be resolved
+        # explicitly before any port lookup -- otherwise `setup.spec` raises
+        # NotInspectedError. Same order mikro's conftest uses.
         setup.down()
+        setup.pull()
+        setup.inspect()
 
         http_url = f"http://localhost:{setup.spec.find_service('fluss').get_port_for_internal(80).published}/graphql"
         ws_url = f"ws://localhost:{setup.spec.find_service('fluss').get_port_for_internal(80).published}/graphql"
