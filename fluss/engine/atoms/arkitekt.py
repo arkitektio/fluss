@@ -37,7 +37,6 @@ class ArkitektMapAtom(MapAtom, RekuestAtom):
             kwargs[item.key] = arg
 
         returns = await self.contract.acall_raw(
-            parent=self.assignment.task,
             reference=node_to_reference(self.node, event),
             kwargs=kwargs,
         )
@@ -66,7 +65,6 @@ class ArkitektMergeMapAtom(MergeMapAtom, RekuestAtom):
             kwargs[item.key] = arg
 
         async for r in self.contract.aiterate_raw(
-            parent=self.assignment.task,
             reference=node_to_reference(self.node, event),
             kwargs=kwargs,
         ):
@@ -93,7 +91,6 @@ class ArkitektAsCompletedAtom(AsCompletedAtom, RekuestAtom):
 
         returns = await self.contract.acall_raw(
             kwargs=kwargs,
-            parent=self.assignment.task,
             reference=node_to_reference(self.node, event),
         )
 
@@ -121,7 +118,6 @@ class ArkitektOrderedAtom(OrderedAtom, RekuestAtom):
 
         returns = await self.contract.acall_raw(
             kwargs=kwargs,
-            parent=self.assignment.task,
             reference=node_to_reference(self.node, event),
         )
 

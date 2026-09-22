@@ -168,7 +168,6 @@ class MockContract:
     async def acall_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Any = None,
         reference: Optional[str] = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -184,7 +183,6 @@ class MockContract:
     async def aiterate_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Any = None,
         reference: Optional[str] = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -261,7 +259,11 @@ def fluss_calls() -> Dict[str, List[Any]]:
 def make_contractor(contract: MockContract) -> Any:
     """A contractor that hands the given contract to every rekuest node."""
 
-    async def contractor(node: Any, rekuest: Any) -> MockContract:
+    async def contractor(
+        node: Any,
+        rekuest: Any,
+        task: Any = None,  # noqa: ANN401 -- a Task, which this double never uses
+    ) -> MockContract:
         return contract
 
     return contractor

@@ -30,7 +30,6 @@ class ArkitektFilterAtom(FilterAtom):
 
         returns = await self.contract.acall_raw(
             kwargs=kwargs,
-            parent=self.assignment,
             reference=node_to_reference(self.node, event),
         )
         return all([r for r in returns.values()])

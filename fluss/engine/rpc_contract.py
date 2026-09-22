@@ -2,7 +2,6 @@ from types import TracebackType
 from typing import Any, AsyncGenerator, Dict, Optional, Protocol, runtime_checkable
 from koil.composition.base import KoiledModel
 from rekuest.api.schema import Action
-from rekuest.messages import Assign
 
 
 @runtime_checkable
@@ -22,7 +21,6 @@ class RPCContract(Protocol):
     async def acall_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Optional[Assign] = None,
         reference: str | None = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -31,7 +29,6 @@ class RPCContract(Protocol):
     async def aiterate_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Optional[Assign] = None,
         reference: str | None = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -61,7 +58,19 @@ class DirectContract(KoiledModel):
     action: Action
     reference: str
     rekuest: Any
-    """The rekuest client the calls go through."""
+    """The rekuest client the action was looked up through."""
+    task: Any = None
+    """The task this flow runs for, if any.
+
+    Calls go out through it when there is one -- a call made while a task runs is that
+    task's child, and the task is what knows the socket and the assignment. With no task
+    the flow is running outside any assignment (``arun_flow(assignment=...)``, which the
+    tests use) and the client's own root call is the right thing.
+    """
+
+    def _caller(self) -> Any:  # noqa: ANN401 -- a Task or a Rekuest; they share no base
+        """Whichever of the two makes a call of the right kind. Their raw signatures match."""
+        return self.task if self.task is not None else self.rekuest
 
     async def __aexit__(
         self,
@@ -74,7 +83,6 @@ class DirectContract(KoiledModel):
     async def acall_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Optional[Assign] = None,
         reference: str | None = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -84,17 +92,15 @@ class DirectContract(KoiledModel):
         """
         # assign_timeout/timeout_is_recoverable are part of the contract protocol,
         # but the rekuest call has no such options; they were never delivered.
-        return await self.rekuest.acall_raw(
+        return await self._caller().acall_raw(
             kwargs=kwargs,
             action=self.action,
-            parent=parent,
             reference=reference,
         )
 
     def aiterate_raw(
         self,
         kwargs: Dict[str, Any],
-        parent: Optional[Assign] = None,
         reference: str | None = None,
         assign_timeout: Optional[float] = None,
         timeout_is_recoverable: bool = False,
@@ -102,10 +108,9 @@ class DirectContract(KoiledModel):
         """Call the function or generator in a blocking or non-blocking way.
         This method should be implemented by the subclass.
         """
-        return self.rekuest.aiterate_raw(
+        return self._caller().aiterate_raw(
             kwargs=kwargs,
             action=self.action,
-            parent=parent,
             reference=reference,
         )
 

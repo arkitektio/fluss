@@ -98,7 +98,11 @@ async def arun_flow(
             x for x in flow.graph.nodes if isinstance(x, RekuestActionNodeBase)
         ]
 
-        contracts = {node.id: await contractor(node, rekuest) for node in rekuest_nodes}
+        # The task goes with it: a call a contract makes while this flow runs for a task is
+        # that task's child, and only the task can make it one.
+        contracts = {
+            node.id: await contractor(node, rekuest, task) for node in rekuest_nodes
+        }
         await asyncio.gather(*[contract.aenter() for contract in contracts.values()])
 
         await fluss.asnapshot(run=run.id, events=list(state.values()), t=t)
