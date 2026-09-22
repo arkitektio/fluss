@@ -19,7 +19,7 @@ dependencies = [
 # imports rekuest unguarded, so it needs it present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=4"]
+engine = ["rekuest>=5"]
 
 
 [tool.uv]
@@ -34,7 +34,7 @@ dev-dependencies =  [
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
     "dokker>=2.8",
-    "rekuest>=4",
+    "rekuest>=5",
     "basedpyright>=1.21",
 ]
 
