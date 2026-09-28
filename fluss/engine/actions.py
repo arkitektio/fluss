@@ -16,14 +16,14 @@ from fluss.fluss import Fluss
 from rekuest.client.client import Rekuest
 from rekuest.task import Task
 from rath.scalars import ID
-from rekuest.actors.actify import derive_implementation_details
+from arkitekt_spec.declare.actors.actify import derive_implementation_details
 from rekuest.actors.functional import GEN, FunctionalActor
-from rekuest.actors.types import (
-    ActorBuilder,
-    AnyFunction,
+from arkitekt_spec.declare.actors.types import (
     ImplementationDetails,
     RegisterConfig,
 )
+from arkitekt_spec.declare.protocol.types import AnyFunction
+from rekuest.actors.types import ActorBuilder
 from arkitekt_spec.actions import (
     ActionKind,
     ArgPortInput,
@@ -31,7 +31,7 @@ from arkitekt_spec.actions import (
     PortKind,
     ReturnPortInput,
 )
-from rekuest.structures.registry import StructureRegistry
+from arkitekt_spec.declare.structures.registry import StructureRegistry
 
 from fluss.engine.engine import arun_flow
 

@@ -7,9 +7,9 @@ that were built with the fluss service rather than to whatever imported this
 module.
 """
 
-from rekuest.actors.types import RegisterConfig
-from rekuest.app import AppRegistry
-from rekuest.register import register_func
+from arkitekt_spec.declare.actors.types import RegisterConfig
+from arkitekt_spec.declare.app import AppRegistry
+from arkitekt_spec.declare.register import register_func
 
 from fluss.engine.actions import flow_actifier, run_flow
 

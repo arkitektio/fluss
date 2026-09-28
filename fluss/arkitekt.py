@@ -5,6 +5,7 @@ ask for the client it returns. An app takes all of it in with
 ``App(services=[fluss_service])``.
 """
 
+import importlib.util
 import os
 from typing import Annotated
 
@@ -15,8 +16,8 @@ from rath.links.aiohttp import AIOHttpLink
 from rath.links.graphql_ws import GraphQLWSLink
 from rath.links.split import SplitLink
 
-from rekuest.app import AppRegistry
-from rekuest.widgets import SearchWidget
+from arkitekt_spec.declare.app import AppRegistry
+from arkitekt_spec.declare.widgets import SearchWidget
 
 from fluss.api.schema import Flow, Run, SearchFlowsQuery, SearchRunsQuery
 from fluss.fluss import Fluss
@@ -85,8 +86,14 @@ def _contribute_run_flow() -> None:
 
     Imported here rather than at module top: the engine pulls in the whole flow
     runtime, and a package that only sends `Flow` ids around should not pay for it
-    until its registry is built.
+    until its registry is built. It runs flows on rekuest, the ``engine`` extra:
+    without rekuest installed there is no engine, and fluss offers no ``run_flow``
+    (its structures and client work regardless). Presence is asked plainly, so an
+    import that fails for any other reason still surfaces.
     """
+    if importlib.util.find_spec("rekuest") is None:
+        return
+
     from rekuest.arkitekt import rekuest_service
 
     from fluss.engine.rekuest import register_run_flow

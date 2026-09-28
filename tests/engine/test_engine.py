@@ -1,5 +1,6 @@
 """Tests for the flow execution engine (`arun_flow`)."""
 
+from rekuest.actors.build import actor_builder_for
 import asyncio
 import itertools
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -419,7 +420,7 @@ async def test_run_flow_action_is_registered() -> None:
     wiring is tested on the arkitekt side, which is where fakts is installed.
     """
     from fluss.arkitekt import registry as package
-    from rekuest.app import AppRegistry
+    from arkitekt_spec.declare.app import AppRegistry
 
     # What an app does with `fluss_service`: take the package registry in.
     registry = AppRegistry()
@@ -432,14 +433,14 @@ async def test_run_flow_action_is_registered() -> None:
     assert implementation.definition.args[0].identifier == "@fluss/flow"
     assert [port.key for port in implementation.definition.returns] == ["returns"]
 
-    builder = registry.actor_builders["run_flow"]
+    builder = actor_builder_for(registry, "run_flow")
     assert builder.keywords["expand_inputs"] is False
     assert builder.keywords["shrink_outputs"] is False
     assert builder.keywords["concurrency"] == "parallel"
 
-    # The builder baked the *package's* structures in; a run is served from its
-    # own snapshot, never from the module-level registry every app shares.
+    # An agent builds actors against the registry it serves: a run's snapshot,
+    # never the module-level registry every app shares.
     snapshot = registry.snapshot()
-    served = snapshot.actor_builders["run_flow"]
+    served = actor_builder_for(snapshot, "run_flow")
     assert served.keywords["structure_registry"] is snapshot.structure_registry
-    assert builder.keywords["structure_registry"] is package.structure_registry
+    assert builder.keywords["structure_registry"] is registry.structure_registry

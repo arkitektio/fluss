@@ -102,7 +102,7 @@ def test_run_flow_takes_its_clients_and_task_by_injection() -> None:
     so this reads the registry fluss ships -- which takes rekuest's service in
     before it registers ``run_flow``.
     """
-    from rekuest.actors.actify import derive_implementation_details
+    from arkitekt_spec.declare.actors.actify import derive_implementation_details
     from rekuest.client.client import Rekuest
 
     from fluss.arkitekt import registry
