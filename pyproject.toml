@@ -19,7 +19,7 @@ dependencies = [
 # imports rekuest unguarded, so it needs it present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=5"]
+engine = ["rekuest>=5", "arkitekt-spec>=0.1"]
 
 
 [tool.uv]
