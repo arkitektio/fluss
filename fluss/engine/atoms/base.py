@@ -5,10 +5,10 @@ from fluss.api.schema import BaseGraphNodeBase
 from fluss.engine.atoms.errors import AtomQueueFull
 from fluss.engine.events import EventType, InEvent, OutEvent
 import logging
-from rekuest.messages import Assign
+from arkitekt_runtime.messages import Assign
 from fluss.engine.atoms.transport import AtomTransport
 from fluss.engine.reference_counter import ReferenceCounter
-from rekuest.actors.base import Actor
+from arkitekt_runtime.actors.base import Actor
 from pydantic import BaseModel, ConfigDict
 from typing import Dict, Any
 from fluss.engine.events import InEvent, OutEvent, EventType, ErrorOutEvent

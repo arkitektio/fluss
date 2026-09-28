@@ -1,6 +1,6 @@
 """Tests for the flow execution engine (`arun_flow`)."""
 
-from rekuest.actors.build import actor_builder_for
+from arkitekt_runtime.actors.build import actor_builder_for
 import asyncio
 import itertools
 from typing import Any, AsyncGenerator, Dict, List, Optional
@@ -8,7 +8,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 import pytest
 from types import SimpleNamespace
 from fluss.api.schema import Flow
-from rekuest.messages import Assign
+from arkitekt_runtime.messages import Assign
 
 from fluss.engine.engine import arun_flow
 

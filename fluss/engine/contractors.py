@@ -4,7 +4,7 @@ from fluss.api.schema import (
     RekuestActionNodeBase,
 )
 from rekuest.client.client import Rekuest
-from rekuest.task import Task
+from arkitekt_runtime.task import Task
 
 
 @runtime_checkable

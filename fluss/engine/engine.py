@@ -21,8 +21,8 @@ from fluss.api.schema import (
     TrackMutationTrack,
 )
 from rath.scalars import ID
-from rekuest.actors.base import Actor
-from rekuest.messages import Assign
+from arkitekt_runtime.actors.base import Actor
+from arkitekt_runtime.messages import Assign
 
 from fluss.engine.atoms.transport import AtomTransport
 from fluss.engine.atoms.utils import atomify
@@ -42,7 +42,7 @@ from fluss.engine.utils import connected_events
 
 if TYPE_CHECKING:
     from rekuest.client.client import Rekuest
-    from rekuest.task import Task
+    from arkitekt_runtime.task import Task
 
     from fluss.fluss import Fluss
 

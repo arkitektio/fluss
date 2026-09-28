@@ -14,7 +14,7 @@ from fluss.engine.atoms.generic import (
 )
 from fluss.engine.events import InEvent
 import logging
-from rekuest.messages import Assign
+from arkitekt_runtime.messages import Assign
 
 
 logger = logging.getLogger(__name__)

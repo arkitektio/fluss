@@ -18,10 +18,11 @@ dependencies = [
 
 [project.optional-dependencies]
 # `fluss.engine` (formerly the reaktion-next distribution) executes flows and
-# imports rekuest unguarded, so it needs it present. Plain `fluss` does not:
+# runs on the execution core (arkitekt-runtime) and calls through rekuest, so it
+# needs both present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=6"]
+engine = ["rekuest>=6", "arkitekt-runtime>=0.1"]
 
 
 [tool.uv]

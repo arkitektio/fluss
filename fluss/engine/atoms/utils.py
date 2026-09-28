@@ -1,6 +1,6 @@
 from typing import Awaitable, Callable, Dict
 from fluss.engine.atoms.transformation.buffer_count import BufferCountAtom
-from rekuest.messages import Assign
+from arkitekt_runtime.messages import Assign
 from fluss.api.schema import (
     RekuestFilterActionNode,
     RekuestMapActionNode,
@@ -30,10 +30,10 @@ from fluss.engine.atoms.filter.all import AllAtom
 from fluss.engine.rpc_contract import RPCContract
 from .base import Atom
 from .transport import AtomTransport
-from rekuest.messages import Assign
+from arkitekt_runtime.messages import Assign
 from typing import Any, Optional
 from fluss.engine.atoms.operations.math import MathAtom, operation_map
-from rekuest.actors.base import Actor
+from arkitekt_runtime.actors.base import Actor
 from fluss.engine.reference_counter import ReferenceCounter
 
 
