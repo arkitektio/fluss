@@ -13,7 +13,7 @@ dependencies = [
     "rath>=4",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec.
-    "arkitekt-spec>=0.1",
+    "arkitekt-spec>=1.1.1",
 ]
 
 [project.optional-dependencies]
@@ -22,7 +22,7 @@ dependencies = [
 # needs both present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=6", "arkitekt-runtime>=0.1"]
+engine = ["rekuest>=6", "arkitekt-runtime>=1.0.2"]
 
 
 [tool.uv]
