@@ -409,6 +409,7 @@ name = "fluss"
 source = { editable = "." }
 dependencies = [
     { name = "arkitekt-spec" },
+    { name = "fakts" },
     { name = "rath" },
     { name = "websockets" },
 ]
@@ -439,6 +440,7 @@ dev = [
 requires-dist = [
     { name = "arkitekt-runtime", marker = "extra == 'engine'", specifier = ">=1.0.2" },
     { name = "arkitekt-spec", specifier = ">=1.1.1" },
+    { name = "fakts", specifier = ">=4" },
     { name = "rath", specifier = ">=4" },
     { name = "rekuest", marker = "extra == 'engine'", specifier = ">=6" },
     { name = "websockets", specifier = ">=15.0.1" },
