@@ -19,7 +19,16 @@ from rath.links.split import SplitLink
 from arkitekt_spec.declare.app import AppRegistry
 from arkitekt_spec.declare.widgets import SearchWidget
 
-from fluss.api.schema import Flow, Run, SearchFlowsQuery, SearchRunsQuery
+from fluss.api.schema import (
+    Flow,
+    PythonFlow,
+    PythonRun,
+    Run,
+    SearchFlowsQuery,
+    SearchPythonFlowsQuery,
+    SearchPythonRunsQuery,
+    SearchRunsQuery,
+)
 from fluss.fluss import Fluss
 from fluss.rath import FlussLinkComposition, FlussRath
 
@@ -76,6 +85,18 @@ async def expand_run(id: str, fluss: Fluss) -> Run:
     return await fluss.arun(id)
 
 
+@registry.structure("@fluss/pythonflow", widget=_search(SearchPythonFlowsQuery))
+async def expand_python_flow(id: str, fluss: Fluss) -> PythonFlow:
+    """One version of a flow written as Python source, by id."""
+    return await fluss.aget_python_flow(id)
+
+
+@registry.structure("@fluss/pythonrun", widget=_search(SearchPythonRunsQuery))
+async def expand_python_run(id: str, fluss: Fluss) -> PythonRun:
+    """A run of a Python flow version, by id."""
+    return await fluss.aget_python_run(id)
+
+
 def _contribute_run_flow() -> None:
     """Register the generic ``run_flow`` action fluss brings with it.
 
@@ -96,10 +117,17 @@ def _contribute_run_flow() -> None:
 
     from rekuest.arkitekt import rekuest_service
 
-    from fluss.engine.rekuest import register_run_flow
+    from fluss.engine.rekuest import register_run_flow, register_run_python_flow
 
     registry.register_service(rekuest_service)
     register_run_flow(registry)
+
+    # Python flows run in Monty, which is the optional `python` extra.
+    try:
+        import pydantic_monty  # noqa: F401
+    except ImportError:
+        return
+    register_run_python_flow(registry)
 
 
 _contribute_run_flow()

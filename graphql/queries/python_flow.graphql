@@ -1,0 +1,39 @@
+query GetPythonFlow($id: ID!) {
+  pythonFlow(id: $id) {
+    ...PythonFlow
+  }
+}
+
+query PythonFlows($limit: Int, $status: [PythonFlowStatus!]) {
+  pythonFlows(pagination: { limit: $limit }, filters: { status: $status }) {
+    ...ListPythonFlow
+  }
+}
+
+query PythonFlowVersions($id: ID!) {
+  pythonFlow(id: $id) {
+    versions {
+      ...ListPythonFlow
+    }
+  }
+}
+
+query SearchPythonFlows($search: String, $values: [ID!]) {
+  options: pythonFlows(filters: { search: $search, ids: $values }) {
+    value: id
+    label: title
+  }
+}
+
+query GetPythonRun($id: ID!) {
+  pythonRun(id: $id) {
+    ...PythonRun
+  }
+}
+
+query SearchPythonRuns($search: String, $values: [ID!]) {
+  options: pythonRuns(filters: { search: $search, ids: $values }) {
+    value: id
+    label: taskId
+  }
+}

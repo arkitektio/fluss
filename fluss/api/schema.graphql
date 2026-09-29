@@ -481,6 +481,12 @@ input ChoiceReturnWidgetInput @unionElementOf(union: "ReturnWidgetInput", discri
   kind: ReturnWidgetKind!
 }
 
+"""Finish a PythonRun."""
+input ClosePythonRunInput {
+  run: ID!
+  status: PythonRunStatus! = COMPLETED
+}
+
 input CloseRunInput {
   run: ID!
 }
@@ -522,6 +528,27 @@ input ComponentPropInput {
   Defines an imperative interactive network action callback loop if this prop should trigger a system utility interaction.
   """
   utilCall: UtilCallInput = null
+}
+
+"""
+A new PythonFlow version, carrying the report the executor's validation produced for its source.
+"""
+input CreatePythonFlowInput {
+  source: String!
+  entrypoint: String! = "main"
+  title: String = null
+  description: String = null
+  previous: ID = null
+  args: [ArgPortInput!]! = []
+  returns: [ReturnPortInput!]! = []
+  manifest: [ManifestEntryInput!]! = []
+  runtime: String!
+}
+
+"""Start (or reuse) the run of a published PythonFlow for a task."""
+input CreatePythonRunInput {
+  flow: ID!
+  taskId: ID!
 }
 
 input CreateRunInput {
@@ -667,6 +694,14 @@ interface Effect {
   call: UtilCall!
   dependencies: [String!]!
   source: String
+}
+
+"""
+The effect class of an implementation — declared by the implementation, never the caller. NONE work is freely retryable/reclaimable; PHYSICAL work touches the real world (no UPSERT), so an ambiguous failure is terminal and must not be retried.
+"""
+enum EffectClass {
+  NONE
+  PHYSICAL
 }
 
 "\n    An effect is a way to modify a port based on a condition. For example,\n    you could have an effect that hides the port if another port meets a condition,\n    e.g. when the user selects a certain option in a dropdown, another port is hidden.\n\n    The condition is a pure blok UtilCall (`call`) evaluated client-side against the\n    catalog; it must return a boolean deciding whether the effect applies. `dependencies`\n    is the authoritative list of other ports the call may reference (plus `value` for the\n    port's own value).\n    "
@@ -1000,6 +1035,42 @@ type LoggingEdge implements GraphEdge {
   level: String!
 }
 
+"""
+One action a Python flow may call. The manifest is the flow's permission boundary: the executor injects only these.
+"""
+type ManifestEntry {
+  """The name the action is injected under in the source."""
+  alias: String!
+
+  """The hash of the action definition that is called."""
+  actionHash: String!
+
+  """The app that provides the action, if pinned."""
+  app: String
+
+  """The key of the action within its app, if pinned."""
+  key: String
+
+  """The version of the app, if pinned."""
+  version: String
+
+  """Whether calling the action touches the real world (PHYSICAL)."""
+  effect: EffectClass!
+}
+
+"""
+One action a Python flow may call, as the executor's validation resolved it.
+"""
+input ManifestEntryInput {
+  """The name the action is injected under in the source"""
+  alias: String!
+  actionHash: String!
+  app: String = null
+  key: String = null
+  version: String = null
+  effect: EffectClass! = NONE
+}
+
 enum MapStrategy {
   MAP
   MAP_TO
@@ -1044,6 +1115,35 @@ type Mutation {
 
   """Record a single run event (a value, error or completion) for a run."""
   track(input: TrackInput!): RunEvent!
+
+  """
+  Store a new DRAFT Python flow version (or return the existing one with the same content in its lineage).
+  """
+  createPythonFlow(input: CreatePythonFlowInput!): PythonFlow!
+
+  """Change a Python flow version's title or description."""
+  updatePythonFlow(input: UpdatePythonFlowInput!): PythonFlow!
+
+  """
+  Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it is registered as an action.
+  """
+  publishPythonFlow(input: PythonFlowRefInput!): PythonFlow!
+
+  """
+  Archive a PUBLISHED Python flow version, so it is no longer registered.
+  """
+  archivePythonFlow(input: PythonFlowRefInput!): PythonFlow!
+
+  """Delete a DRAFT Python flow version."""
+  deletePythonFlow(input: PythonFlowRefInput!): ID!
+
+  """
+  Start (or reuse) the run of a published Python flow version for a task.
+  """
+  createPythonRun(input: CreatePythonRunInput!): PythonRun!
+
+  """Finish a Python flow run as COMPLETED or FAILED."""
+  closePythonRun(input: ClosePythonRunInput!): PythonRun!
 }
 
 input OffsetPaginationInput {
@@ -1193,6 +1293,178 @@ type ProxyWidget implements AssignWidget {
   targetDependency: String
 }
 
+"""
+A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions.
+"""
+type PythonFlow @key(fields: "id", resolvable: true) {
+  """The unique identifier of this version."""
+  id: ID!
+
+  """A human-readable title for the flow."""
+  title: String!
+
+  """An optional longer description of what the flow does."""
+  description: String
+
+  """The time at which this version was created."""
+  createdAt: DateTime!
+
+  """Shared by every version of the same flow."""
+  lineage: ID!
+
+  """The version this one was derived from, if any."""
+  previous: PythonFlow
+
+  """The versions derived from this one."""
+  nextVersions(filters: PythonFlowFilter, ordering: [PythonFlowOrder!]! = [], pagination: OffsetPaginationInput): [PythonFlow!]!
+
+  """The Python source of the flow."""
+  source: String!
+
+  """The function in the source that is called."""
+  entrypoint: String!
+
+  """
+  The executor runtime (interpreter + helpers) the source was validated against.
+  """
+  runtime: String!
+
+  """DRAFT, PUBLISHED (registered as an action) or ARCHIVED."""
+  status: PythonFlowStatus!
+
+  """A content hash over source, entrypoint, manifest and runtime."""
+  hash: String!
+
+  """The runs of this version."""
+  runs(filters: PythonRunFilter, ordering: [PythonRunOrder!]! = [], pagination: OffsetPaginationInput): [PythonRun!]!
+
+  """The arguments of the entrypoint, as rekuest ports."""
+  args: [ArgPort!]!
+
+  """The return values of the entrypoint, as rekuest ports."""
+  returns: [ReturnPort!]!
+
+  """Every action the source may call, under the name it is injected as."""
+  manifest: [ManifestEntry!]!
+
+  """Whether any action in the manifest has a PHYSICAL effect."""
+  physical: Boolean!
+
+  """Every version in this flow's lineage, oldest first."""
+  versions: [PythonFlow!]!
+}
+
+input PythonFlowFilter {
+  """Filter by a list of IDs"""
+  ids: [ID!]
+
+  """
+  Search by title (case-insensitive substring) or by the meaning of the query against title and description. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking
+  """
+  search: String
+
+  """Filter for items created before this datetime"""
+  createdBefore: DateTime
+
+  """Filter for items created after this datetime"""
+  createdAfter: DateTime
+
+  """Filter by whether the current user has pinned the item"""
+  pinned: Boolean
+  AND: PythonFlowFilter
+  OR: PythonFlowFilter
+  NOT: PythonFlowFilter
+  DISTINCT: Boolean
+
+  """Filter by lifecycle status"""
+  status: [PythonFlowStatus!]
+
+  """Filter to the versions of one flow"""
+  lineage: ID
+}
+
+input PythonFlowOrder @oneOf {
+  createdAt: Ordering
+  title: Ordering
+  id: Ordering
+}
+
+"""Refers to one PythonFlow version."""
+input PythonFlowRefInput {
+  id: ID!
+}
+
+"""
+The lifecycle of a PythonFlow version: only PUBLISHED versions are registered as actions.
+"""
+enum PythonFlowStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+"""
+A PythonRun is one execution of a published PythonFlow for a task; its step-by-step history is that task's child tasks in rekuest.
+"""
+type PythonRun @key(fields: "id", resolvable: true) {
+  """The unique identifier of the run."""
+  id: ID!
+
+  """The version that is executed."""
+  flow: PythonFlow!
+
+  """The id of the rekuest task that runs the flow."""
+  taskId: ID!
+
+  """RUNNING, COMPLETED or FAILED."""
+  status: PythonRunStatus!
+
+  """The time at which the run started."""
+  createdAt: DateTime!
+
+  """The time at which the run finished, if it has."""
+  finishedAt: DateTime
+}
+
+input PythonRunFilter {
+  """Filter by a list of IDs"""
+  ids: [ID!]
+
+  """Filter for items created before this datetime"""
+  createdBefore: DateTime
+
+  """Filter for items created after this datetime"""
+  createdAfter: DateTime
+
+  """Filter by whether the current user has pinned the item"""
+  pinned: Boolean
+  AND: PythonRunFilter
+  OR: PythonRunFilter
+  NOT: PythonRunFilter
+  DISTINCT: Boolean
+
+  """Search by task id (case-insensitive substring)"""
+  search: String
+
+  """Filter by run status"""
+  status: [PythonRunStatus!]
+
+  """Filter to the runs of these PythonFlow versions"""
+  flows: [ID!]
+}
+
+input PythonRunOrder @oneOf {
+  createdAt: Ordering
+  id: Ordering
+}
+
+"""The status of a PythonRun."""
+enum PythonRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 type Query {
   _entities(representations: [_Any!]!): [_Entity]!
   _service: _Service!
@@ -1211,6 +1483,12 @@ type Query {
 
   """List all reactive operator templates (a shared, global catalog)."""
   reactiveTemplates(filters: ReactiveTemplateFilter, ordering: [ReactiveTemplateOrder!]! = [], pagination: OffsetPaginationInput): [ReactiveTemplate!]!
+
+  """List all Python flow versions in your organization."""
+  pythonFlows(filters: PythonFlowFilter, ordering: [PythonFlowOrder!]! = [], pagination: OffsetPaginationInput): [PythonFlow!]!
+
+  """List all Python flow runs in your organization."""
+  pythonRuns(filters: PythonRunFilter, ordering: [PythonRunOrder!]! = [], pagination: OffsetPaginationInput): [PythonRun!]!
 
   """Aggregate statistics over the workspaces in your organization."""
   workspaceStats(filters: WorkspaceFilter = null): WorkspaceStats!
@@ -1234,6 +1512,12 @@ type Query {
 
   """Fetch a single flow by id."""
   flow(id: ID!): Flow!
+
+  """Fetch a single Python flow version by id."""
+  pythonFlow(id: ID!): PythonFlow!
+
+  """Fetch a single Python flow run by id."""
+  pythonRun(id: ID!): PythonRun!
 
   """Fetch a single run snapshot by id."""
   snapshot(id: ID!): Snapshot!
@@ -2122,6 +2406,15 @@ input TrackInput {
   handle: String = null
 }
 
+"""
+Change a PythonFlow's title or description; its source, manifest and runtime are immutable.
+"""
+input UpdatePythonFlowInput {
+  id: ID!
+  title: String = null
+  description: String = null
+}
+
 input UpdateWorkspaceInput {
   workspace: ID!
   graph: GraphInput!
@@ -2301,7 +2594,7 @@ enum WorkspaceTimestampField {
 
 scalar _Any
 
-union _Entity = Flow | ReactiveTemplate | Run | RunEvent | Snapshot | Workspace
+union _Entity = Flow | PythonFlow | PythonRun | ReactiveTemplate | Run | RunEvent | Snapshot | Workspace
 
 type _Service {
   sdl: String!

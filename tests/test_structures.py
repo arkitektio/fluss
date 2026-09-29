@@ -19,6 +19,8 @@ from fluss import arkitekt as declared  # noqa: E402
 IDENTIFIERS = {
     "@fluss/flow",
     "@fluss/run",
+    "@fluss/pythonflow",
+    "@fluss/pythonrun",
 }
 
 
