@@ -10,10 +10,10 @@ requires-python = ">=3.11, <4.0"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 dependencies = [
-    "rath>=4",
+    "rath>=4.1.1",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec.
-    "arkitekt-spec>=1.1.1",
+    "arkitekt-spec>=1.4",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
     "fakts>=4",
 ]
