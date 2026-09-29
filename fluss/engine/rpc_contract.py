@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Any, AsyncGenerator, Dict, Optional, Protocol, runtime_checkable
 from koil.composition.base import KoiledModel
+from pydantic import PrivateAttr
 from rekuest.api.schema import Action
 
 
@@ -68,9 +69,23 @@ class DirectContract(KoiledModel):
     tests use) and the client's own root call is the right thing.
     """
 
+    _calls: int = PrivateAttr(default=0)
+
     def _caller(self) -> Any:  # noqa: ANN401 -- a Task or a Rekuest; they share no base
         """Whichever of the two makes a call of the right kind. Their raw signatures match."""
         return self.task if self.task is not None else self.rekuest
+
+    def _keyed(self) -> dict[str, Any]:
+        """The call key of this node's next call, when it is a task's child.
+
+        A flow's nodes call concurrently, so the steps their calls take differ from one run
+        to the next; the node and how often it has called do not. A resumed run finds each
+        call it already made again by this key. A root call (no task) has no parent to key by.
+        """
+        if self.task is None:
+            return {}
+        self._calls += 1
+        return {"call_key": f"{self.reference}:{self._calls}"}
 
     async def __aexit__(
         self,
@@ -96,6 +111,7 @@ class DirectContract(KoiledModel):
             kwargs=kwargs,
             action=self.action,
             reference=reference,
+            **self._keyed(),
         )
 
     def aiterate_raw(
@@ -112,6 +128,7 @@ class DirectContract(KoiledModel):
             kwargs=kwargs,
             action=self.action,
             reference=reference,
+            **self._keyed(),
         )
 
     async def aenter(self) -> "DirectContract":
