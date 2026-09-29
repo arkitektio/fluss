@@ -13,7 +13,7 @@ dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec.
-    "arkitekt-spec>=1.4",
+    "arkitekt-spec>=2.0",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
     "fakts>=4",
 ]
@@ -24,9 +24,9 @@ dependencies = [
 # needs both present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=6", "arkitekt-runtime>=1.0.2"]
+engine = ["rekuest>=7.1", "arkitekt-runtime>=4.1"]
 # `fluss.engine.python` validates and runs Python flows in a Monty sandbox.
-python = ["rekuest>=6", "pydantic-monty>=1,<2"]
+python = ["rekuest>=7.1", "pydantic-monty>=1,<2"]
 
 
 [tool.uv]
@@ -41,7 +41,7 @@ dev-dependencies =  [
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
     "dokker>=2.8",
-    "rekuest>=6",
+    "rekuest>=7.1",
     "basedpyright>=1.21",
 ]
 
