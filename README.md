@@ -80,6 +80,11 @@ with easy("my-script", fluss_service) as fluss:
 `fluss.engine` executes a flow as a generic rekuest action: given a flow and a dict of arguments it
 yields the flow's returns, so a workflow can be called like any other action.
 
+A flow run is registered as a rekuest **workflow**: if the agent running it dies, it is resumed,
+and the node calls that already finished return their recorded results instead of running again.
+Each call is keyed by its node and how often that node ran, so concurrent branches are found
+again whichever order they finish in.
+
 ```python
 from fluss.engine import run_flow, arun_flow
 ```
