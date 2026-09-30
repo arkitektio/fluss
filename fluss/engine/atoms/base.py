@@ -72,9 +72,8 @@ class Atom(BaseModel):
         except Exception as e:
             logger.error(f"{self.node.id} FAILED", exc_info=True)
             await self.transport.put(
-                OutEvent(
+                ErrorOutEvent(
                     handle="return_0",
-                    type=EventType.ERROR,
                     source=self.node.id,
                     exception=e,
                     caused_by=[-1],

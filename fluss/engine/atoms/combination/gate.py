@@ -89,9 +89,8 @@ class GateAtom(CombinationAtom):
                                 break
                             else:
                                 await self.transport.put(
-                                    OutEvent(
+                                    NextOutEvent(
                                         handle="return_0",
-                                        type=EventType.NEXT,
                                         value=get_event.value,
                                         source=self.node.id,
                                         caused_by=[

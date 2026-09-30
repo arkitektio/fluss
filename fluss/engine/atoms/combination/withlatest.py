@@ -2,32 +2,42 @@ import asyncio
 from typing import List, Optional
 from fluss.engine.atoms.helpers import index_for_handle
 from fluss.engine.atoms.combination.base import CombinationAtom
-from fluss.engine.events import EventType, OutEvent, NextInEvent
+from fluss.engine.events import (
+    CompleteOutEvent,
+    ErrorOutEvent,
+    EventType,
+    NextInEvent,
+    NextOutEvent,
+)
 import logging
-import functools
-from typing import Optional
 from pydantic import Field
 
 logger = logging.getLogger(__name__)
 
 
 class WithLatestAtom(CombinationAtom):
+    """Emit on the first stream, combined with the latest value of every other stream.
+
+    Only an event on the first stream emits, and only once every other stream has
+    emitted at least once; the others just update what is latest. The first stream
+    completing completes the atom.
+    """
+
     state: List[Optional[NextInEvent]] = Field(default_factory=lambda: [None, None])
 
     async def run(self):
-        self.state = list(map(lambda x: None, self.node.ins))
+        self.state = [None for _ in self.node.ins]
         try:
             while True:
                 event = await self.get()
 
                 if event.type == EventType.ERROR:
                     await self.transport.put(
-                        NextInEvent(
+                        ErrorOutEvent(
                             handle="return_0",
-                            type=EventType.ERROR,
                             exception=event.exception,
                             source=self.node.id,
-                            caused_by=[event.current_t],
+                            caused_by=(event.current_t,),
                         )
                     )
                     break
@@ -37,11 +47,10 @@ class WithLatestAtom(CombinationAtom):
                 if event.type == EventType.COMPLETE:
                     if streamIndex == 0:
                         await self.transport.put(
-                            OutEvent(
+                            CompleteOutEvent(
                                 handle="return_0",
-                                type=EventType.COMPLETE,
                                 source=self.node.id,
-                                caused_by=[event.current_t],
+                                caused_by=(event.current_t,),
                             )
                         )
                         break
@@ -49,16 +58,19 @@ class WithLatestAtom(CombinationAtom):
                 if event.type == EventType.NEXT:
                     self.state[streamIndex] = event
 
-                    if all(map(lambda x: x is not None, self.state)):
+                    if streamIndex == 0 and all(x is not None for x in self.state):
+                        value = ()
+                        caused_by = ()
+                        for inevent in self.state:
+                            value += inevent.value
+                            caused_by += (inevent.current_t,)
+
                         await self.transport.put(
-                            OutEvent(
+                            NextOutEvent(
                                 handle="return_0",
-                                type=EventType.NEXT,
-                                value=functools.reduce(
-                                    lambda a, b: a + b.value, self.state, tuple()
-                                ),
+                                value=value,
                                 source=self.node.id,
-                                caused_by=map(lambda x: x.current_t, self.state),
+                                caused_by=caused_by,
                             )
                         )
 

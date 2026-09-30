@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 from fluss.engine.atoms.transformation.base import TransformationAtom
-from fluss.engine.events import EventType, OutEvent, InEvent
+from fluss.engine.events import EventType, InEvent, NextOutEvent, ErrorOutEvent, CompleteOutEvent
 import logging
 from pydantic import Field
 from functools import reduce
@@ -29,9 +29,8 @@ class AllAtom(TransformationAtom):
 
                 if event.type == EventType.ERROR:
                     await self.transport.put(
-                        OutEvent(
+                        ErrorOutEvent(
                             handle="return_0",
-                            type=EventType.ERROR,
                             exception=event.exception,
                             source=self.node.id,
                             caused_by=[event.current_t],
@@ -41,9 +40,8 @@ class AllAtom(TransformationAtom):
 
                 if event.type == EventType.COMPLETE:
                     await self.transport.put(
-                        OutEvent(
+                        CompleteOutEvent(
                             handle="return_0",
-                            type=EventType.COMPLETE,
                             source=self.node.id,
                             caused_by=[event.current_t],
                         )
@@ -54,9 +52,8 @@ class AllAtom(TransformationAtom):
                     try:
                         self.assert_values(event.value, check_list_length=list_length)
                         await self.transport.put(
-                            OutEvent(
+                            NextOutEvent(
                                 handle="return_0",
-                                type=EventType.NEXT,
                                 value=event.value,
                                 source=self.node.id,
                                 caused_by=[event.current_t],
@@ -66,9 +63,8 @@ class AllAtom(TransformationAtom):
                         logger.exception(f"Atom {self.node} filtered out an event")
 
                         await self.transport.put(
-                            OutEvent(
+                            NextOutEvent(
                                 handle="return_1",
-                                type=EventType.NEXT,
                                 value=event.value,
                                 source=self.node.id,
                                 caused_by=[event.current_t],

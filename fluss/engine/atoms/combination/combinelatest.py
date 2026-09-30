@@ -13,6 +13,7 @@ class CombineLatestAtom(CombinationAtom):
     state: List[Optional[NextInEvent]] = Field(default_factory=lambda: [None, None])
 
     async def run(self):
+        self.state = [None for _ in self.node.ins]
         try:
             while True:
                 event = await self.get()

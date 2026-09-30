@@ -14,8 +14,6 @@ import asyncio
 from fluss.engine.atoms.arkitekt import (
     ArkitektMapAtom,
     ArkitektMergeMapAtom,
-    ArkitektAsCompletedAtom,
-    ArkitektOrderedAtom,
 )
 from fluss.engine.atoms.arkitekt_filter import ArkitektFilterAtom
 from fluss.engine.atoms.transformation.chunk import ChunkAtom
@@ -25,6 +23,7 @@ from fluss.engine.atoms.transformation.omit import OmitAtom
 from fluss.engine.atoms.combination.zip import ZipAtom
 from fluss.engine.atoms.transformation.filter import FilterAtom
 from fluss.engine.atoms.combination.withlatest import WithLatestAtom
+from fluss.engine.atoms.combination.combinelatest import CombineLatestAtom
 from fluss.engine.atoms.combination.gate import GateAtom
 from fluss.engine.atoms.filter.all import AllAtom
 from fluss.engine.rpc_contract import RPCContract
@@ -58,27 +57,6 @@ def atomify(
                     actor=actor,
                     reference_counter=reference_counter,
                 )
-            if node.map_strategy == MapStrategy.AS_COMPLETED:
-                return ArkitektAsCompletedAtom(
-                    node=node,
-                    contract=contract,
-                    transport=transport,
-                    assignment=assignment,
-                    globals=globals,
-                    actor=actor,
-                    reference_counter=reference_counter,
-                )
-            if node.map_strategy == MapStrategy.ORDERED:
-                return ArkitektAsCompletedAtom(
-                    node=node,
-                    contract=contract,
-                    transport=transport,
-                    assignment=assignment,
-                    globals=globals,
-                    actor=actor,
-                    reference_counter=reference_counter,
-                )
-
             raise NotImplementedError(
                 f"Map strategy {node.map_strategy} is not implemented"
             )
@@ -184,7 +162,7 @@ def atomify(
                 reference_counter=reference_counter,
             )
         if node.implementation == ReactiveImplementation.COMBINELATEST:
-            return WithLatestAtom(
+            return CombineLatestAtom(
                 node=node,
                 transport=transport,
                 assignment=assignment,

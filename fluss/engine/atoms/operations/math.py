@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 from fluss.engine.atoms.operations.base import OperationAtom
-from fluss.engine.events import EventType, OutEvent
+from fluss.engine.events import EventType, NextOutEvent, ErrorOutEvent, CompleteOutEvent
 from fluss.api.schema import ReactiveImplementation
 import logging
 import operator
@@ -33,9 +33,8 @@ class MathAtom(OperationAtom):
 
                 if event.type == EventType.ERROR:
                     await self.transport.put(
-                        OutEvent(
+                        ErrorOutEvent(
                             handle="return_0",
-                            type=EventType.ERROR,
                             exception=event.exception,
                             source=self.node.id,
                             caused_by=[event.current_t],
@@ -45,9 +44,8 @@ class MathAtom(OperationAtom):
 
                 if event.type == EventType.NEXT:
                     await self.transport.put(
-                        OutEvent(
+                        NextOutEvent(
                             handle="return_0",
-                            type=EventType.NEXT,
                             value=[operation(value, number) for value in event.value],
                             source=self.node.id,
                             caused_by=[event.current_t],
@@ -56,10 +54,8 @@ class MathAtom(OperationAtom):
 
                 if event.type == EventType.COMPLETE:
                     await self.transport.put(
-                        OutEvent(
+                        CompleteOutEvent(
                             handle="return_0",
-                            type=EventType.COMPLETE,
-                            value=[],
                             source=self.node.id,
                             caused_by=[event.current_t],
                         )
