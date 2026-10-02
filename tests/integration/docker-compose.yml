@@ -16,8 +16,10 @@ services:
     image: jhnnsrs/fluss:${FLUSS_SERVICE_TAG:-latest}
     command: bash run-debug.sh
     stop_grace_period: 1s
+    # The host ports come from the test session (`integration_ports` in conftest.py),
+    # so runs do not collide; the defaults are for a stack started by hand.
     ports:
-    - 6888:80
+    - "${FLUSS_HOST_PORT:-6888}:80"
     volumes:
     - ./configs/fluss.yaml:/workspace/config.yaml
   rustfs:
@@ -28,7 +30,7 @@ services:
       RUSTFS_ACCESS_KEY: minio_root_user
     image: rustfs/rustfs:latest
     ports:
-    - 6889:9000
+    - "${RUSTFS_HOST_PORT:-6889}:9000"
   initc:
     depends_on:
       rustfs:
