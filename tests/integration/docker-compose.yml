@@ -8,13 +8,27 @@ services:
       POSTGRES_MULTIPLE_DATABASES: fluss
       POSTGRES_PASSWORD: hello_django
       POSTGRES_USER: hello_django
+  # Brings the database to the image's release, once, before the server is started: a
+  # service's own start only serves.
+  fluss-migrate:
+    depends_on:
+    - db
+    image: jhnnsrs/fluss:${FLUSS_SERVICE_TAG:-latest}
+    command: arkitekt-service run migrate
+    volumes:
+    - ./configs/fluss.yaml:/workspace/config.yaml
   fluss:
     depends_on:
-    - redis
-    - db
-    - rustfs
+      redis:
+        condition: service_started
+      db:
+        condition: service_started
+      rustfs:
+        condition: service_started
+      fluss-migrate:
+        condition: service_completed_successfully
     image: jhnnsrs/fluss:${FLUSS_SERVICE_TAG:-latest}
-    command: bash run-debug.sh
+    command: arkitekt-service debug
     stop_grace_period: 1s
     # The host ports come from the test session (`integration_ports` in conftest.py),
     # so runs do not collide; the defaults are for a stack started by hand.
