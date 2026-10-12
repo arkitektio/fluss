@@ -16,7 +16,7 @@ permission boundary the runner enforces by only binding what they declare.
 import dataclasses
 from typing import Any, Iterable, Protocol, Sequence
 
-from fluss.api.schema import ActionKind, EffectClass, ManifestEntryInput
+from fluss.api.schema import ActionKind, Effects, ManifestEntryInput
 
 from fluss.engine.python.ports import (
     PortLike,
@@ -53,12 +53,12 @@ class ManifestAction:
     """One action a flow may call, under the name the source calls it by.
 
     ``effect`` is declared by whoever builds the manifest: a rekuest ``Action`` does not carry
-    its implementations' effect class, so ``@fluss/physical`` is only as honest as this.
+    its implementations' effects, so ``@fluss/physical`` is only as honest as this.
     """
 
     alias: str
     action: ActionLike
-    effect: EffectClass = EffectClass.NONE
+    effect: Effects = Effects.UNKNOWN
     app: str | None = None
     key: str | None = None
     version: str | None = None

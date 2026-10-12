@@ -15,7 +15,7 @@ import pytest_asyncio
 
 pydantic_monty = pytest.importorskip("pydantic_monty")
 
-from fluss.api.schema import ArgPortInput, EffectClass, PortKind, ReturnPortInput  # noqa: E402
+from fluss.api.schema import ArgPortInput, Effects, PortKind, ReturnPortInput  # noqa: E402
 from fluss.engine.python import (  # noqa: E402
     ManifestAction,
     PythonFlowError,
@@ -49,7 +49,7 @@ MEASURE = ManifestAction(
     alias="measure",
     action=action("h-measure", [arg("image", PortKind.STRUCTURE, identifier=IMAGE)], [ret("count", PortKind.INT), ret("area", PortKind.FLOAT)]),
 )
-MOVE = ManifestAction(alias="move_stage", action=action("h-move", [arg("x", PortKind.FLOAT)], []), effect=EffectClass.PHYSICAL)
+MOVE = ManifestAction(alias="move_stage", action=action("h-move", [arg("x", PortKind.FLOAT)], []), effect=Effects.IRREVERSIBLE)
 ACTIONS = [SEGMENT, MEASURE, MOVE]
 
 SOURCE = '''"""Segment an image and count what is in it."""
@@ -140,7 +140,7 @@ async def test_a_valid_flow_reports_its_ports_and_manifest(pool) -> None:
         ("repeats", PortKind.INT, None, False, 1),
     ]
     assert [(p.key, p.kind) for p in report.returns] == [("return0", PortKind.STRUCTURE), ("return1", PortKind.INT)]
-    assert [(m.alias, m.action_hash, m.effect) for m in report.manifest] == [("segment", "h-seg", EffectClass.NONE), ("measure", "h-measure", EffectClass.NONE), ("move_stage", "h-move", EffectClass.PHYSICAL)]
+    assert [(m.alias, m.action_hash, m.effect) for m in report.manifest] == [("segment", "h-seg", Effects.UNKNOWN), ("measure", "h-measure", Effects.UNKNOWN), ("move_stage", "h-move", Effects.IRREVERSIBLE)]
     assert report.runtime.startswith("monty-")
 
 

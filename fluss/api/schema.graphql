@@ -245,7 +245,7 @@ input ArgPortInput {
   description: String = null
 
   """
-  The identifier of a structure port. This is used to uniquely identify a specific type of structure.
+  The identifier of the port's type, of the form @package/key. Required for STRUCTURE, MEMORY_STRUCTURE and INTERFACE, where it is the only identity a value has; optional for MODEL and ENUM, where it names the class or enum the port was built from so that agents can map a value back to it.
   """
   identifier: String = null
 
@@ -696,14 +696,6 @@ interface Effect {
   source: String
 }
 
-"""
-The effect class of an implementation — declared by the implementation, never the caller. NONE work is freely retryable/reclaimable; PHYSICAL work touches the real world (no UPSERT), so an ambiguous failure is terminal and must not be retried.
-"""
-enum EffectClass {
-  NONE
-  PHYSICAL
-}
-
 "\n    An effect is a way to modify a port based on a condition. For example,\n    you could have an effect that hides the port if another port meets a condition,\n    e.g. when the user selects a certain option in a dropdown, another port is hidden.\n\n    The condition is a pure blok UtilCall (`call`) evaluated client-side against the\n    catalog; it must return a boolean deciding whether the effect applies. `dependencies`\n    is the authoritative list of other ports the call may reference (plus `value` for the\n    port's own value).\n    "
 input EffectInput {
   """
@@ -742,6 +734,16 @@ enum EffectKind {
   CUSTOM
 }
 
+"""
+What running an implementation again would do to the world. Purely informational: shown to whoever decides about a lost task.
+"""
+enum Effects {
+  NONE
+  REPEATABLE
+  UNKNOWN
+  IRREVERSIBLE
+}
+
 """The JSON-serializable payload carried by a run event."""
 scalar EventValue
 
@@ -751,6 +753,11 @@ A Flow is a versioned, executable graph of nodes and edges that lives inside a W
 type Flow @key(fields: "id", resolvable: true) {
   """The unique identifier of the flow."""
   id: ID!
+
+  """
+  This object's descriptors, a flat mapping of key to value: the facts about it that an action's port can `require` and a trigger can test (e.g. `@fluss/status`). The keys are the ones fluss declares for this structure, and the values are the ones a signal about the object carries. Empty for a structure that declares none
+  """
+  descriptors: JSON!
 
   """A human-readable title for the flow."""
   title: String!
@@ -1000,6 +1007,11 @@ The `Identifier` scalar is a structure identifier of the form `@package/key` (e.
 scalar Identifier
 
 """
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+"""
+scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
+
+"""
 The `JSONSerializable` scalar type represents a JSON-serializable value.
 """
 scalar JSONSerializable
@@ -1054,8 +1066,10 @@ type ManifestEntry {
   """The version of the app, if pinned."""
   version: String
 
-  """Whether calling the action touches the real world (PHYSICAL)."""
-  effect: EffectClass!
+  """
+  What calling the action again would do to the world. IRREVERSIBLE marks the flow physical.
+  """
+  effect: Effects!
 }
 
 """
@@ -1068,7 +1082,7 @@ input ManifestEntryInput {
   app: String = null
   key: String = null
   version: String = null
-  effect: EffectClass! = NONE
+  effect: Effects! = UNKNOWN
 }
 
 enum MapStrategy {
@@ -1250,7 +1264,7 @@ type Provides {
 
 input ProvidesInput {
   """
-  The key of the provision: the path into the object the constraint reads
+  The key of the provision: the descriptor name the constraint reads, matched verbatim as one flat key of the candidate object (any non-empty string, e.g. 'axes' or '@mikro/n_space_axes')
   """
   key: String!
 
@@ -1300,6 +1314,11 @@ type PythonFlow @key(fields: "id", resolvable: true) {
   """The unique identifier of this version."""
   id: ID!
 
+  """
+  This object's descriptors, a flat mapping of key to value: the facts about it that an action's port can `require` and a trigger can test (e.g. `@fluss/status`). The keys are the ones fluss declares for this structure, and the values are the ones a signal about the object carries. Empty for a structure that declares none
+  """
+  descriptors: JSON!
+
   """A human-readable title for the flow."""
   title: String!
 
@@ -1347,7 +1366,7 @@ type PythonFlow @key(fields: "id", resolvable: true) {
   """Every action the source may call, under the name it is injected as."""
   manifest: [ManifestEntry!]!
 
-  """Whether any action in the manifest has a PHYSICAL effect."""
+  """Whether any action in the manifest has an IRREVERSIBLE effect."""
   physical: Boolean!
 
   """Every version in this flow's lineage, oldest first."""
@@ -1409,6 +1428,11 @@ A PythonRun is one execution of a published PythonFlow for a task; its step-by-s
 type PythonRun @key(fields: "id", resolvable: true) {
   """The unique identifier of the run."""
   id: ID!
+
+  """
+  This object's descriptors, a flat mapping of key to value: the facts about it that an action's port can `require` and a trigger can test (e.g. `@fluss/status`). The keys are the ones fluss declares for this structure, and the values are the ones a signal about the object carries. Empty for a structure that declares none
+  """
+  descriptors: JSON!
 
   """The version that is executed."""
   flow: PythonFlow!
@@ -1841,7 +1865,7 @@ type Requires {
 
 input RequiresInput {
   """
-  The key of the requirement: the path into the object the constraint reads
+  The key of the requirement: the descriptor name the constraint reads, matched verbatim as one flat key of the candidate object (any non-empty string, e.g. 'axes' or '@mikro/n_space_axes')
   """
   key: String!
 
@@ -1951,7 +1975,7 @@ input ReturnPortInput {
   description: String = null
 
   """
-  The identifier of a structure port. This is used to uniquely identify a specific type of structure.
+  The identifier of the port's type, of the form @package/key. Required for STRUCTURE, MEMORY_STRUCTURE and INTERFACE, where it is the only identity a value has; optional for MODEL and ENUM, where it names the class or enum the port was built from so that agents can map a value back to it.
   """
   identifier: String = null
 
@@ -2031,6 +2055,11 @@ A Run is a single live execution of a Flow, tied to a task. As it executes it ac
 type Run @key(fields: "id", resolvable: true) {
   """The unique identifier of the run."""
   id: ID!
+
+  """
+  This object's descriptors, a flat mapping of key to value: the facts about it that an action's port can `require` and a trigger can test (e.g. `@fluss/status`). The keys are the ones fluss declares for this structure, and the values are the ones a signal about the object carries. Empty for a structure that declares none
+  """
+  descriptors: JSON!
 
   """The time at which the run was started."""
   createdAt: DateTime!
@@ -2513,6 +2542,11 @@ A Workspace is the top-level container that groups the Flows of an organization,
 type Workspace @key(fields: "id", resolvable: true) {
   """The unique identifier of the workspace."""
   id: ID!
+
+  """
+  This object's descriptors, a flat mapping of key to value: the facts about it that an action's port can `require` and a trigger can test (e.g. `@fluss/status`). The keys are the ones fluss declares for this structure, and the values are the ones a signal about the object carries. Empty for a structure that declares none
+  """
+  descriptors: JSON!
 
   """A human-readable title for the workspace."""
   title: String!

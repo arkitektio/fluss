@@ -4,7 +4,7 @@ from typing import Iterable, Mapping, Sequence
 
 from rekuest.client.client import Rekuest
 
-from fluss.api.schema import EffectClass, PythonFlow
+from fluss.api.schema import Effects, PythonFlow
 from fluss.engine.python.manifest import ManifestAction
 from fluss.engine.python.validate import ValidationReport, validate_python_flow
 from fluss.fluss import Fluss
@@ -19,14 +19,14 @@ class InvalidPythonFlow(ValueError):
         self.report = report
 
 
-async def amanifest(actions: Mapping[str, str], rekuest: Rekuest, effects: Mapping[str, EffectClass] | None = None) -> list[ManifestAction]:
+async def amanifest(actions: Mapping[str, str], rekuest: Rekuest, effects: Mapping[str, Effects] | None = None) -> list[ManifestAction]:
     """``{alias: action hash}`` as manifest actions, each looked up in rekuest.
 
-    ``effects`` declares the aliases that touch the real world: rekuest's ``Action`` does not
-    carry its implementations' effect class, so the author of the flow says so.
+    ``effects`` declares what calling each alias again would do to the world (undeclared is UNKNOWN): rekuest's ``Action`` does not
+    carry its implementations' effects, so the author of the flow says so.
     """
     effects = effects or {}
-    return [ManifestAction(alias=alias, action=await rekuest.afind(hash=hash), effect=effects.get(alias, EffectClass.NONE)) for alias, hash in actions.items()]
+    return [ManifestAction(alias=alias, action=await rekuest.afind(hash=hash), effect=effects.get(alias, Effects.UNKNOWN)) for alias, hash in actions.items()]
 
 
 async def acreate_python_flow_from_source(

@@ -64,17 +64,19 @@ class DescriptorOperator(str, Enum):
     NOT_IN = 'NOT_IN'
     __str__ = str.__str__
 
-class EffectClass(str, Enum):
-    """The effect class of an implementation — declared by the implementation, never the caller. NONE work is freely retryable/reclaimable; PHYSICAL work touches the real world (no UPSERT), so an ambiguous failure is terminal and must not be retried."""
-    NONE = 'NONE'
-    PHYSICAL = 'PHYSICAL'
-    __str__ = str.__str__
-
 class EffectKind(str, Enum):
     """The kind of effect."""
     MESSAGE = 'MESSAGE'
     HIDE = 'HIDE'
     CUSTOM = 'CUSTOM'
+    __str__ = str.__str__
+
+class Effects(str, Enum):
+    """What running an implementation again would do to the world. Purely informational: shown to whoever decides about a lost task."""
+    NONE = 'NONE'
+    REPEATABLE = 'REPEATABLE'
+    UNKNOWN = 'UNKNOWN'
+    IRREVERSIBLE = 'IRREVERSIBLE'
     __str__ = str.__str__
 
 class GraphEdgeKind(str, Enum):
@@ -339,7 +341,7 @@ class ArgPortInput(BaseModel):
     label: str | None = Field(default=None, description='The label of the port. This is the text that is displayed in the UI')
     kind: PortKind = Field(description='The kind of the port. This is the type of the port. Can be either int, string, structure, list, bool, dict, float, date, union or model')
     description: str | None = Field(default=None, description='The description of the port. This is the text that is displayed in the UI when the user hovers over the port')
-    identifier: str | None = Field(default=None, description='The identifier of a structure port. This is used to uniquely identify a specific type of structure.')
+    identifier: str | None = Field(default=None, description="The identifier of the port's type, of the form @package/key. Required for STRUCTURE, MEMORY_STRUCTURE and INTERFACE, where it is the only identity a value has; optional for MODEL and ENUM, where it names the class or enum the port was built from so that agents can map a value back to it.")
     nullable: Annotated[bool | None, GraphQLDefault('False')] = Field(default=None, description='Whether the port is nullable or not. If the port is nullable, it can be set to null. If the port is not nullable, it cannot be set to null')
     'Whether the port is nullable or not. If the port is nullable, it can be set to null. If the port is not nullable, it cannot be set to null\nDefault: False'
     effects: tuple['EffectInput', ...] | None = Field(default=None, description='The effects of the port')
@@ -521,8 +523,8 @@ class ManifestEntryInput(BaseModel):
     app: str | None = None
     key: str | None = None
     version: str | None = None
-    effect: Annotated[EffectClass | None, GraphQLDefault('NONE')] = None
-    'Default: NONE'
+    effect: Annotated[Effects | None, GraphQLDefault('UNKNOWN')] = None
+    'Default: UNKNOWN'
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class OffsetPaginationInput(BaseModel):
@@ -540,14 +542,14 @@ class PositionInput(BaseModel):
 
 class ProvidesInput(BaseModel):
     """No documentation"""
-    key: str = Field(description='The key of the provision: the path into the object the constraint reads')
+    key: str = Field(description="The key of the provision: the descriptor name the constraint reads, matched verbatim as one flat key of the candidate object (any non-empty string, e.g. 'axes' or '@mikro/n_space_axes')")
     operator: DescriptorOperator = Field(description='The operator for the provision')
     value: Any | None = Field(default=None, description='The value of the provision. This can be any JSON serializable value; IN/NOT_IN take a list, LTE/GTE a number, EXISTS none')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class RequiresInput(BaseModel):
     """No documentation"""
-    key: str = Field(description='The key of the requirement: the path into the object the constraint reads')
+    key: str = Field(description="The key of the requirement: the descriptor name the constraint reads, matched verbatim as one flat key of the candidate object (any non-empty string, e.g. 'axes' or '@mikro/n_space_axes')")
     operator: DescriptorOperator = Field(description='The operator for the requirement')
     value: Any | None = Field(default=None, description='The value of the requirement. This can be any JSON serializable value; IN/NOT_IN take a list, LTE/GTE a number, EXISTS none')
     model_config = ConfigDict(frozen=True, extra='forbid')
@@ -564,7 +566,7 @@ class ReturnPortInput(BaseModel):
     label: str | None = Field(default=None, description='The label of the port. This is the text that is displayed in the UI')
     kind: PortKind = Field(description='The kind of the port. This is the type of the port. Can be either int, string, structure, list, bool, dict, float, date, union or model')
     description: str | None = Field(default=None, description='The description of the port. This is the text that is displayed in the UI when the user hovers over the port')
-    identifier: str | None = Field(default=None, description='The identifier of a structure port. This is used to uniquely identify a specific type of structure.')
+    identifier: str | None = Field(default=None, description="The identifier of the port's type, of the form @package/key. Required for STRUCTURE, MEMORY_STRUCTURE and INTERFACE, where it is the only identity a value has; optional for MODEL and ENUM, where it names the class or enum the port was built from so that agents can map a value back to it.")
     nullable: Annotated[bool | None, GraphQLDefault('False')] = Field(default=None, description='Whether the port is nullable or not. If the port is nullable, it can be set to null. If the port is not nullable, it cannot be set to null')
     'Whether the port is nullable or not. If the port is nullable, it can be set to null. If the port is not nullable, it cannot be set to null\nDefault: False'
     effects: tuple[EffectInput, ...] | None = Field(default=None, description='The effects of the port')
@@ -929,8 +931,8 @@ class ManifestEntry(BaseModel):
     'The key of the action within its app, if pinned.'
     version: str | None = Field(default=None)
     'The version of the app, if pinned.'
-    effect: EffectClass
-    'Whether calling the action touches the real world (PHYSICAL).'
+    effect: Effects
+    'What calling the action again would do to the world. IRREVERSIBLE marks the flow physical.'
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -1798,7 +1800,7 @@ class PythonFlow(BaseModel):
     hash: str
     'A content hash over source, entrypoint, manifest and runtime.'
     physical: bool
-    'Whether any action in the manifest has a PHYSICAL effect.'
+    'Whether any action in the manifest has an IRREVERSIBLE effect.'
     created_at: datetime = Field(alias='createdAt')
     'The time at which this version was created.'
     previous: PythonFlowPrevious | None = Field(default=None)
