@@ -1,8 +1,8 @@
 """Python flows, end to end against a real fluss.
 
-The source is validated locally (Monty type-checks it, the ports are derived
-from the entrypoint), stored as a DRAFT, published, versioned, run and
-archived on the server; the stored source then runs locally in the sandbox.
+The server validates the source (Monty type-checks it, the ports are derived
+from the entrypoint) and stores it as a DRAFT; it is published, versioned, run
+and archived there, and the stored source then runs locally in the sandbox.
 Nothing here needs rekuest: a run is recorded, not executed, by the server.
 """
 
@@ -11,12 +11,11 @@ import uuid
 
 import pytest
 
-pytest.importorskip("pydantic_monty")
+pytest.importorskip("fluss_monty")
 
 from fluss.api.schema import PythonFlowStatus, PythonRunStatus  # noqa: E402
-from fluss.engine.python.runner import arun_python_flow  # noqa: E402
-from fluss.engine.python.validate import validate_python_flow  # noqa: E402
 from fluss.fluss import Fluss  # noqa: E402
+from fluss_monty import arun_python_flow  # noqa: E402
 from rath.operation import GraphQLException  # noqa: E402
 
 SOURCE = '''
@@ -35,36 +34,39 @@ async def _no_actions(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
 
 
 def _store(fluss: Fluss, source: str, title: str, previous: str | None = None):
-    report = asyncio.run(validate_python_flow(source))
-    assert report.ok, report.diagnostics
     return fluss.create_python_flow(
         source=source,
-        entrypoint=report.entrypoint,
-        args=report.args,
-        returns=report.returns,
-        manifest=report.manifest,
-        runtime=report.runtime,
+        entrypoint="main",
+        manifest=[],
+        structures=[],
         title=title,
         **({"previous": previous} if previous else {}),
-    ), report
+    )
 
 
 @pytest.mark.integration
 def test_a_draft_can_be_deleted(deployed_app) -> None:
     fluss = deployed_app.fluss
-    flow, _ = _store(fluss, SOURCE, f"draft-{uuid.uuid4().hex[:6]}")
+    flow = _store(fluss, SOURCE, f"draft-{uuid.uuid4().hex[:6]}")
 
     assert flow.status == PythonFlowStatus.DRAFT
     assert fluss.delete_python_flow(flow.id) == flow.id
 
 
 @pytest.mark.integration
+def test_a_source_that_does_not_validate_is_refused(deployed_app) -> None:
+    with pytest.raises(GraphQLException, match="does not validate"):
+        _store(deployed_app.fluss, "async def main(x: int) -> int:\n    return await missing(x)\n", "refused")
+
+
+@pytest.mark.integration
 def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> None:
     fluss = deployed_app.fluss
     title = f"increment-{uuid.uuid4().hex[:6]}"
-    flow, report = _store(fluss, SOURCE, title)
+    flow = _store(fluss, SOURCE, title)
 
     assert flow.status == PythonFlowStatus.DRAFT
+    assert [(port.key, port.kind.value) for port in flow.args] == [("x", "INT")]
     assert flow.hash
     assert flow.source.strip() == SOURCE.strip()
 
@@ -75,7 +77,7 @@ def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> 
     assert flow.id in [o.value for o in fluss.search_python_flows(search=title)]
 
     # A new version shares the lineage.
-    second, _ = _store(fluss, NEXT_SOURCE, title, previous=flow.id)
+    second = _store(fluss, NEXT_SOURCE, title, previous=flow.id)
     assert second.lineage == flow.lineage
     versions = [v.id for v in fluss.python_flow_versions(second.id).versions]
     assert flow.id in versions and second.id in versions
@@ -92,7 +94,7 @@ def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> 
     # The stored source runs in the sandbox as it was validated.
     stored = fluss.get_python_flow(flow.id)
     result = asyncio.run(
-        arun_python_flow(stored.source, {"x": 2}, [], _no_actions, entrypoint=stored.entrypoint, returns=report.returns)
+        arun_python_flow(stored.source, {"x": 2}, [], _no_actions, entrypoint=stored.entrypoint, returns=stored.returns)
     )
     assert list(result.values()) == [3]
 

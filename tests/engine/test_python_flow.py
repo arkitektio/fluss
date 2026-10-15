@@ -1,7 +1,7 @@
-"""Python flows in a real Monty sandbox: validation, the port mapping, and runs.
+"""The rekuest side of Python flows: the run_python_flow action, its actor, stored flows, deploying.
 
-Actions are plain async functions behind the injected ``call`` -- the same seam the rekuest
-action fills with ``task.acall_raw`` -- so everything below the rekuest socket is real.
+The sandbox itself is fluss-monty's (and tested there); here fluss, rekuest and the task are
+fakes behind the action, and Monty is real.
 """
 
 import ast
@@ -13,18 +13,11 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-pydantic_monty = pytest.importorskip("pydantic_monty")
+pytest.importorskip("fluss_monty")
+import pydantic_monty  # noqa: E402
 
 from fluss.api.schema import ArgPortInput, Effects, PortKind, ReturnPortInput  # noqa: E402
-from fluss.engine.python import (  # noqa: E402
-    ManifestAction,
-    PythonFlowError,
-    PythonFlowLimits,
-    arun_python_flow,
-    validate_python_flow,
-)
-from fluss.engine.python.manifest import action_stub, build_stubs  # noqa: E402
-from fluss.engine.python.ports import annotation_to_port, port_to_annotation, structure_class_name  # noqa: E402
+from fluss_monty import ManifestAction, arun_python_flow, build_stubs, validate_python_flow  # noqa: E402
 
 def arg(key: str, kind: PortKind, **extra: Any) -> ArgPortInput:
     return ArgPortInput(key=key, kind=kind, nullable=extra.pop("nullable", False), **extra)
@@ -74,8 +67,8 @@ class Recorder:
         self.calls: list[tuple[str, dict, str]] = []
         self.delay = delay
 
-    async def __call__(self, entry: ManifestAction, kwargs: dict, reference: str) -> dict:
-        self.calls.append((entry.alias, kwargs, reference))
+    async def __call__(self, entry: ManifestAction, kwargs: dict, call_key: str) -> dict:
+        self.calls.append((entry.alias, kwargs, call_key))
         await asyncio.sleep(self.delay)
         if entry.alias == "segment":
             if kwargs["image"] == "broken":
@@ -92,195 +85,6 @@ async def pool():
         yield pool
 
 
-# --- ports <-> annotations ---------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "annotation",
-    ["int", "float", "str", "bool", "MikroImage", "list[int]", "dict[str, MikroImage]", "list[MikroImage] | None", "dict[str, list[float | None]]"],
-)
-def test_annotations_and_ports_round_trip(annotation: str) -> None:
-    structures = {"MikroImage": IMAGE}
-    port = annotation_to_port(ast.parse(annotation, mode="eval").body, "x", structures)
-    assert port_to_annotation(port) == annotation
-
-
-def test_optional_spellings_are_nullable() -> None:
-    for spelling in ("Optional[int]", "None | int", "'int | None'"):
-        port = annotation_to_port(ast.parse(spelling, mode="eval").body, "x", {})
-        assert (port.kind, port.nullable) == (PortKind.INT, True)
-
-
-def test_structure_class_names() -> None:
-    assert structure_class_name("@mikro/image") == "MikroImage"
-    assert structure_class_name("@fluss/pythonflow") == "FlussPythonflow"
-
-
-def test_optional_action_args_become_keyword_only() -> None:
-    assert action_stub(SEGMENT) == "async def segment(image: MikroImage, *, sigma: float | None = ...) -> MikroImage: ..."
-    assert action_stub(MEASURE) == "async def measure(image: MikroImage) -> tuple[int, float]: ..."
-    assert action_stub(MOVE) == "async def move_stage(x: float) -> None: ..."
-
-
-def test_stubs_declare_only_the_manifest() -> None:
-    stubs, classes = build_stubs([SEGMENT], ["@mikro/roi"])
-    assert classes == {"MikroImage": IMAGE, "MikroRoi": "@mikro/roi"}
-    assert "measure" not in stubs
-
-
-# --- validation --------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_a_valid_flow_reports_its_ports_and_manifest(pool) -> None:
-    report = await validate_python_flow(SOURCE, ACTIONS, pool=pool)
-    assert report.ok, report.diagnostics
-    assert [(p.key, p.kind, p.identifier, p.nullable, p.default) for p in report.args] == [
-        ("image", PortKind.STRUCTURE, IMAGE, False, None),
-        ("repeats", PortKind.INT, None, False, 1),
-    ]
-    assert [(p.key, p.kind) for p in report.returns] == [("return0", PortKind.STRUCTURE), ("return1", PortKind.INT)]
-    assert [(m.alias, m.action_hash, m.effect) for m in report.manifest] == [("segment", "h-seg", Effects.UNKNOWN), ("measure", "h-measure", Effects.UNKNOWN), ("move_stage", "h-move", Effects.IRREVERSIBLE)]
-    assert report.runtime.startswith("monty-")
-
-
-@pytest.mark.asyncio
-async def test_an_optional_parameter_is_a_nullable_port(pool) -> None:
-    report = await validate_python_flow("async def main(n: int | None = None) -> None:\n    pass\n", pool=pool)
-    assert report.ok, report.diagnostics
-    assert report.args[0].nullable and report.returns == []
-    # The checker holds the signature to its annotation: `int = None` is not `int | None`.
-    report = await validate_python_flow("async def main(n: int = None) -> None:\n    pass\n", pool=pool)
-    assert not report.ok and "invalid-parameter-default" in report.diagnostics[0].message
-
-
-@pytest.mark.parametrize(
-    "source, message",
-    [
-        ("async def main(image: MikroImage) -> MikroImage:\n    return await delete_everything(image)\n", "delete_everything"),
-        ("async def main(image: MikroImage) -> str:\n    return await measure(image)\n", "invalid-return-type"),
-        ("async def main(x: int) -> int:\n    return await segment(x)\n", "invalid-argument-type"),
-        ("print('side effect')\nasync def main() -> None:\n    pass\n", "module level"),
-        ("def main() -> None:\n    pass\n", "async def"),
-        ("async def other() -> None:\n    pass\n", "no `async def main"),
-        ("async def main(x) -> None:\n    pass\n", "needs a type annotation"),
-        ("async def main(x: set[int]) -> None:\n    pass\n", "has no port"),
-        ("async def main(*xs: int) -> None:\n    pass\n", "named parameters only"),
-        ("async def main( -> None:\n", "Syntax error"),
-    ],
-    ids=["unknown-name", "return-type", "argument-type", "top-level-code", "sync-main", "no-main", "unannotated", "unsupported-type", "varargs", "syntax"],
-)
-@pytest.mark.asyncio
-async def test_invalid_flows_are_rejected(pool, source: str, message: str) -> None:
-    report = await validate_python_flow(source, ACTIONS, pool=pool)
-    assert not report.ok
-    assert message in report.diagnostics[0].message, report.diagnostics
-
-
-@pytest.mark.asyncio
-async def test_generator_actions_and_duplicate_aliases_are_rejected(pool) -> None:
-    stream = ManifestAction(alias="stream", action=action("h-gen", [], [ret("return0", PortKind.INT)], kind="GENERATOR"))
-    report = await validate_python_flow("async def main() -> None:\n    pass\n", [stream], pool=pool)
-    assert not report.ok and "FUNCTION" in report.diagnostics[0].message
-    report = await validate_python_flow("async def main() -> None:\n    pass\n", [SEGMENT, SEGMENT], pool=pool)
-    assert not report.ok and "unique" in report.diagnostics[0].message
-
-
-# --- runs --------------------------------------------------------------------------------
-
-
-async def _run(pool, source: str = SOURCE, kwargs: dict | None = None, caller: Recorder | None = None, **options: Any) -> tuple[dict, Recorder]:
-    report = await validate_python_flow(source, ACTIONS, pool=pool)
-    assert report.ok, report.diagnostics
-    caller = caller or Recorder()
-    returns = await arun_python_flow(source, kwargs or {}, ACTIONS, caller, args=report.args, returns=report.returns, pool=pool, **options)
-    return returns, caller
-
-
-@pytest.mark.asyncio
-async def test_a_run_calls_its_actions_and_packs_its_returns(pool) -> None:
-    printed: list[str] = []
-    returns, caller = await _run(pool, kwargs={"image": "img-1", "repeats": 2}, print_callback=lambda stream, text: printed.append(text))
-    assert returns == {"return0": "img-1-mask", "return1": 7}
-    assert [(alias, kwargs) for alias, kwargs, _ in caller.calls] == [
-        ("segment", {"image": "img-1", "sigma": 1.5}),
-        ("segment", {"image": "img-1", "sigma": 1.5}),
-        ("measure", {"image": "img-1-mask"}),
-    ]
-    assert len({reference for _, _, reference in caller.calls}) == 3
-    assert "".join(printed) == "counted 7 over 12.5\n"
-
-
-@pytest.mark.asyncio
-async def test_gathered_calls_run_concurrently(pool) -> None:
-    start = time.monotonic()
-    await _run(pool, kwargs={"image": "img", "repeats": 5}, caller=Recorder(delay=0.3))
-    # 5 segments + 1 measure at 0.3 s each: ~0.6 s concurrently, 1.8 s one by one.
-    assert time.monotonic() - start < 1.4
-
-
-@pytest.mark.parametrize(
-    "source, kwargs, expected",
-    [
-        ("async def main() -> None:\n    await move_stage(1.0)\n", {}, {}),
-        ("async def main(image: MikroImage) -> MikroImage:\n    return await segment(image)\n", {"image": "img"}, {"return0": "img-mask"}),
-        ("async def main(image: MikroImage) -> tuple[int, float]:\n    return await measure(image)\n", {"image": "img"}, {"return0": 7, "return1": 12.5}),
-    ],
-    ids=["none", "one", "several"],
-)
-@pytest.mark.asyncio
-async def test_returns_unwrap_and_pack(pool, source: str, kwargs: dict, expected: dict) -> None:
-    returns, _ = await _run(pool, source, kwargs)
-    assert returns == expected
-
-
-@pytest.mark.asyncio
-async def test_a_failing_action_fails_the_run(pool) -> None:
-    with pytest.raises(PythonFlowError, match="the segmenter crashed") as caught:
-        await _run(pool, kwargs={"image": "broken"})
-    assert caught.value.traceback and "main" in caught.value.traceback
-
-
-@pytest.mark.asyncio
-async def test_a_flow_can_catch_a_failing_action(pool) -> None:
-    source = (
-        "async def main(image: MikroImage) -> str:\n"
-        "    try:\n"
-        "        return await segment(image)\n"
-        "    except RuntimeError as error:\n"
-        "        return 'recovered: ' + str(error)\n"
-    )
-    returns, _ = await _run(pool, source, {"image": "broken"})
-    assert returns == {"return0": "recovered: segment failed: the segmenter crashed"}
-
-
-@pytest.mark.asyncio
-async def test_the_suspension_limit_stops_a_runaway_flow(pool) -> None:
-    source = "import asyncio\n\nasync def main() -> None:\n    await asyncio.gather(*[move_stage(float(i)) for i in range(50)])\n"
-    with pytest.raises(PythonFlowError, match="suspension limit"):
-        await _run(pool, source, limits=PythonFlowLimits(max_suspensions=10))
-
-
-@pytest.mark.asyncio
-async def test_a_run_rechecks_the_source_against_the_manifest_it_is_given(pool) -> None:
-    """A run binds only what it is given now: a source calling an action outside it never starts."""
-    caller = Recorder()
-    with pytest.raises(PythonFlowError, match="does not check"):
-        await arun_python_flow(SOURCE, {"image": "img"}, [SEGMENT], caller, pool=pool)
-    assert caller.calls == []
-
-
-@pytest.mark.asyncio
-async def test_the_sandbox_has_no_host_filesystem(pool) -> None:
-    """`open` is not even a name a flow can check against; nor does a run bind any OS access."""
-    report = await validate_python_flow("async def main() -> str:\n    return open('/etc/hostname').read()\n", ACTIONS, pool=pool)
-    assert not report.ok and "`open`" in report.diagnostics[0].message
-    report = await validate_python_flow("import os\n\nasync def main() -> list[str]:\n    return os.listdir('/')\n", ACTIONS, pool=pool)
-    assert report.ok, report.diagnostics
-    with pytest.raises(PythonFlowError, match="PermissionError"):
-        await arun_python_flow("import os\n\nasync def main() -> list[str]:\n    return os.listdir('/')\n", {}, ACTIONS, Recorder(), returns=report.returns, pool=pool)
-
-
 # --- rekuest wiring ----------------------------------------------------------------------
 
 
@@ -289,7 +93,7 @@ def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
     from rekuest.client.client import Rekuest
 
     from fluss.arkitekt import registry
-    from fluss.engine.python.actions import build_run_python_flow_definition, run_python_flow
+    from fluss.engine.python.actions import PythonFlowActor, build_run_python_flow_definition, python_flow_actifier, run_python_flow
     from fluss.engine.rekuest import RUN_PYTHON_FLOW_CONFIG
     from fluss.fluss import Fluss
 
@@ -300,6 +104,10 @@ def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
     definition = build_run_python_flow_definition(registry.structure_registry)
     assert [(p.key, p.kind, p.identifier) for p in definition.args] == [("flow", "STRUCTURE", "@fluss/pythonflow"), ("kwargs", "DICT", None)]
     assert definition.kind == "FUNCTION"
+
+    # One actor serves every run, and owns the worker pool they share.
+    _, _, builder = python_flow_actifier(run_python_flow, registry.structure_registry, RUN_PYTHON_FLOW_CONFIG)
+    assert builder.func is PythonFlowActor
 
 
 # --- the shapes production feeds in ------------------------------------------------------
@@ -341,25 +149,225 @@ async def test_a_run_from_a_stored_fluss_python_flow(pool) -> None:
             "runtime": report.runtime, "status": "PUBLISHED", "hash": "h", "physical": False, "createdAt": "2026-09-28T00:00:00Z",
             "args": [{"__typename": "ArgPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.args],
             "returns": [{"__typename": "ReturnPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.returns],
-            "manifest": [{"__typename": "ManifestEntry", **m.model_dump(by_alias=True)} for m in report.manifest],
+            "manifest": [{"__typename": "ManifestEntry", "actionHash": m.action_hash, **m.model_dump(exclude={"action_hash"})} for m in report.manifest],
         }
     )
     returns = await arun_python_flow(stored.source, {"image": "img"}, ACTIONS, Recorder(), args=stored.args, returns=stored.returns, pool=pool)
     assert returns == {"return0": "img-mask", "return1": 7}
 
 
-@pytest.mark.asyncio
-async def test_stored_ports_that_disagree_with_the_source_fail_the_run(pool) -> None:
-    caller = Recorder()
-    wrong = [ret("count", PortKind.INT)]
-    with pytest.raises(PythonFlowError, match="stored returns"):
-        await arun_python_flow(SOURCE, {"image": "img"}, ACTIONS, caller, returns=wrong, pool=pool)
-    assert caller.calls == []
+# --- run_python_flow, against fake fluss/rekuest/task --------------------------------------
+
+
+class FakeTask:
+    def __init__(self, block: bool = False) -> None:
+        self.id = "task-1"
+        self.logs: list[tuple[str, Any]] = []
+        self.keys: list[str] = []
+        self.logged_before_call: list[list[str]] = []
+        self.block = block
+        self.cancelled = False
+        self.references: list[str] = []
+
+    async def acall_raw(self, *, kwargs: dict, action: Any, reference: str, call_key: str) -> dict:  # noqa: ANN401
+        self.keys.append(call_key)
+        self.references.append(reference)
+        await asyncio.sleep(0.05)
+        self.logged_before_call.append([text for text, _ in self.logs])
+        if self.block:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.cancelled = True
+                raise
+        return {"return0": f"{kwargs['image']}-mask"}
+
+    async def alog(self, text: str, level: Any) -> None:  # noqa: ANN401
+        self.logs.append((text, level))
+
+
+class FakeFluss:
+    def __init__(self, flow: Any) -> None:  # noqa: ANN401
+        self.flow = flow
+        self.closed: list[str] = []
+
+    async def aget_python_flow(self, id: str) -> Any:  # noqa: ANN401
+        return self.flow
+
+    async def acreate_python_run(self, flow: str, task_id: str) -> Any:  # noqa: ANN401
+        import datetime
+
+        return SimpleNamespace(id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.timezone.utc))
+
+    async def aclose_python_run(self, run: str, status: Any) -> None:  # noqa: ANN401
+        self.closed.append(status.value)
+
+
+class FakeRekuest:
+    async def afind(self, hash: str) -> Any:  # noqa: ANN401
+        return SEGMENT.action
+
+
+LOGGING = "async def main(image: MikroImage) -> MikroImage:\n    print('segmenting', image)\n    return await segment(image)\n"
+
+
+async def _stored(pool, source: str) -> Any:  # noqa: ANN401
+    from fluss.api.schema import PythonFlow
+
+    report = await validate_python_flow(source, [SEGMENT], pool=pool)
+    assert report.ok, report.diagnostics
+    return PythonFlow.model_validate(
+        {
+            "__typename": "PythonFlow", "id": "1", "title": "t", "lineage": "l", "source": source, "entrypoint": "main",
+            "runtime": report.runtime, "status": "PUBLISHED", "hash": "h", "physical": False, "createdAt": "2026-09-28T00:00:00Z",
+            "args": [{"__typename": "ArgPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.args],
+            "returns": [{"__typename": "ReturnPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.returns],
+            "manifest": [{"__typename": "ManifestEntry", "actionHash": m.action_hash, **m.model_dump(exclude={"action_hash"})} for m in report.manifest],
+        }
+    )
 
 
 @pytest.mark.asyncio
-async def test_an_alias_may_not_shadow_the_entrypoint_or_a_structure(pool) -> None:
-    for alias in ("main", "asyncio", "MikroImage"):
-        shadow = ManifestAction(alias=alias, action=SEGMENT.action)
-        report = await validate_python_flow(SOURCE, [shadow], pool=pool)
-        assert not report.ok and "shadow" in report.diagnostics[0].message, alias
+async def test_run_python_flow_logs_while_it_runs_and_keys_its_calls(pool) -> None:
+    from fluss.engine.python.actions import MontyPool, run_python_flow
+
+    flow, task, monty = FakeFluss(await _stored(pool, LOGGING)), FakeTask(), MontyPool(max_processes=1)
+    try:
+        returns = await run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task, pool=monty)  # type: ignore[arg-type]
+        first = await monty.aget()
+        await run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task, pool=monty)  # type: ignore[arg-type]
+        assert await monty.aget() is first
+    finally:
+        await monty.aclose()
+    assert returns == {"return0": "img-mask"}
+    assert task.logged_before_call[0] == ["segmenting img"]
+    assert task.keys[0] == task.keys[1] and task.keys[0].startswith("segment:")
+    # The reference rekuest falls back on names the call itself, never just its action.
+    assert task.references[0] == f"task-1:{task.keys[0]}"
+    assert flow.closed == ["COMPLETED", "COMPLETED"]
+
+
+@pytest.mark.asyncio
+async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
+    from fluss.engine.python.actions import run_python_flow
+
+    flow, task = FakeFluss(await _stored(pool, LOGGING)), FakeTask(block=True)
+    running = asyncio.create_task(run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task))  # type: ignore[arg-type]
+    while not task.logged_before_call:
+        await asyncio.sleep(0.05)
+    running.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await running
+    assert flow.closed == ["CANCELLED"]
+    assert task.cancelled, "the call in flight is cancelled with its run"
+    assert [text for text, _ in task.logs] == ["segmenting img"]
+
+
+# --- deploying a published version as an action ------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool) -> None:
+    from fluss.engine.python.client import adeploy_python_flow
+
+    class Deployer:
+        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict:  # noqa: ANN401
+            self.kwargs = kwargs
+            return kwargs
+
+    flow, rekuest = await _stored(pool, LOGGING), Deployer()
+    await adeploy_python_flow(flow, rekuest, runner="impl-7")  # type: ignore[arg-type]
+    sent = rekuest.kwargs
+    assert (sent["lower"], sent["interface"]) == ("impl-7", "pythonflow:1")
+    assert sent["config"] == {"bound": {"flow": "1"}, "args_key": "kwargs", "returns_key": "returns"}
+    definition = sent["definition"]
+    assert definition.kind == "FUNCTION"
+    assert [(p.key, p.kind, p.identifier) for p in definition.args] == [("image", "STRUCTURE", IMAGE)]
+    assert [(p.key, p.kind, p.identifier) for p in definition.returns] == [("return0", "STRUCTURE", IMAGE)]
+
+    from fluss.api.schema import PythonFlowStatus
+
+    draft = flow.model_copy(update={"status": PythonFlowStatus.DRAFT})
+    with pytest.raises(ValueError, match="PUBLISHED"):
+        await adeploy_python_flow(draft, rekuest, runner="impl-7")  # type: ignore[arg-type]
+
+
+# --- what the server is sent ---------------------------------------------------------------
+
+
+def test_the_manifest_sent_carries_each_actions_typed_ports_and_nothing_else() -> None:
+    """The server checks the source against these ports; widgets and effects are not its concern."""
+    from rekuest.api.schema import Action
+
+    from fluss.engine.python.client import manifest_inputs
+
+    real = Action.model_validate(
+        {
+            "__typename": "Action", "hash": "h-seg", "id": "1", "name": "segment", "kind": "FUNCTION", "description": None,
+            "args": [
+                {"__typename": "ArgPort", "key": "image", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False, "label": "Image", "description": "The input"},
+                {"__typename": "ArgPort", "key": "sigma", "kind": "FLOAT", "nullable": True, "default": 1.5},
+                _deep_list(2),
+            ],
+            "returns": [{"__typename": "ReturnPort", "key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}],
+            "collections": [], "isDev": False, "isTestFor": [], "portGroups": [], "stateful": False,
+        }
+    )
+    [sent] = manifest_inputs([ManifestAction(alias="segment", action=real, effect="IRREVERSIBLE")])
+    wire = sent.model_dump(by_alias=True, exclude_none=True, mode="json")
+    assert (wire["alias"], wire["actionHash"], wire["kind"], wire["effect"]) == ("segment", "h-seg", "FUNCTION", "IRREVERSIBLE")
+    assert wire["args"][0] == {"key": "image", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}
+    assert wire["args"][1] == {"key": "sigma", "kind": "FLOAT", "nullable": True, "default": 1.5}
+    assert wire["args"][2]["children"][0]["kind"] == "LIST"
+    assert wire["returns"] == [{"key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}]
+
+
+@pytest.mark.asyncio
+async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_request() -> None:
+    from fluss.engine.python.client import acreate_python_flow_from_source
+
+    class Recording:
+        async def acreate_python_flow(self, **kwargs: Any) -> Any:  # noqa: ANN401
+            self.created = kwargs
+            return SimpleNamespace(id="7")
+
+        async def apublish_python_flow(self, id: str) -> Any:  # noqa: ANN401
+            self.published = id
+            return SimpleNamespace(id=id, status="PUBLISHED")
+
+    fluss = Recording()
+    flow = await acreate_python_flow_from_source(LOGGING, [SEGMENT], fluss, title="Segment", publish=True)  # type: ignore[arg-type]
+    assert (flow.id, fluss.published) == ("7", "7")
+    assert set(fluss.created) == {"source", "entrypoint", "manifest", "structures", "title", "description", "previous"}
+    assert [entry.alias for entry in fluss.created["manifest"]] == ["segment"]
+
+
+@pytest.mark.asyncio
+async def test_the_actor_hands_every_run_its_pool_and_closes_it_with_itself() -> None:
+    from fluss.engine.python.actions import MontyPool, PythonFlowActor
+
+    seen: list[Any] = []
+
+    async def assign(**params: Any) -> dict:  # noqa: ANN401
+        seen.append(params["pool"])
+        await params["pool"].aget()
+        return {}
+
+    actor = PythonFlowActor.model_construct(assign=assign, iterator=lambda function, **params: _once(function, **params))
+    actor._pool = MontyPool(max_processes=1)
+    for _ in range(2):
+        async for _ in actor.aiterate_results(flow="1"):
+            pass
+    assert seen[0] is seen[1] is actor._pool
+    assert actor._pool._pool is not None
+
+    async def no_runs(*args: Any, **kwargs: Any) -> int:  # noqa: ANN401
+        return 0
+
+    actor._astop_all = no_runs  # type: ignore[method-assign]
+    await actor.acancel()
+    assert actor._pool._pool is None
+
+
+async def _once(function: Any, **params: Any) -> Any:  # noqa: ANN401
+    yield await function(**params)

@@ -37,3 +37,9 @@ query SearchPythonRuns($search: String, $values: [ID!]) {
     label: taskId
   }
 }
+
+query ValidatePythonFlow($input: PythonFlowSourceInput!) {
+  validatePythonFlow(input: $input) {
+    ...PythonFlowValidation
+  }
+}

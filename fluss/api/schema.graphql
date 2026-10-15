@@ -531,18 +531,20 @@ input ComponentPropInput {
 }
 
 """
-A new PythonFlow version, carrying the report the executor's validation produced for its source.
+A new PythonFlow version: its source and the actions it may call. The server validates it and derives its ports and runtime.
 """
 input CreatePythonFlowInput {
   source: String!
   entrypoint: String! = "main"
+  manifest: [ManifestEntryInput!]! = []
+
+  """
+  Structure identifiers the entrypoint's signature uses that no action mentions
+  """
+  structures: [String!]! = []
   title: String = null
   description: String = null
   previous: ID = null
-  args: [ArgPortInput!]! = []
-  returns: [ReturnPortInput!]! = []
-  manifest: [ManifestEntryInput!]! = []
-  runtime: String!
 }
 
 """Start (or reuse) the run of a published PythonFlow for a task."""
@@ -803,6 +805,11 @@ input FlowFilter {
   OR: FlowFilter
   NOT: FlowFilter
   DISTINCT: Boolean
+
+  """
+  Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
+  """
+  requires: [RequiresInput!]
 }
 
 input FlowOrder @oneOf {
@@ -1073,12 +1080,23 @@ type ManifestEntry {
 }
 
 """
-One action a Python flow may call, as the executor's validation resolved it.
+One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored.
 """
 input ManifestEntryInput {
   """The name the action is injected under in the source"""
   alias: String!
   actionHash: String!
+
+  """The action's kind: a Python flow can only call FUNCTION actions"""
+  kind: ActionKind!
+
+  """The action's arg ports, which the source's calls are checked against"""
+  args: [ArgPortInput!]! = []
+
+  """
+  The action's return ports, which the source's use of its results is checked against
+  """
+  returns: [ReturnPortInput!]! = []
   app: String = null
   key: String = null
   version: String = null
@@ -1131,7 +1149,7 @@ type Mutation {
   track(input: TrackInput!): RunEvent!
 
   """
-  Store a new DRAFT Python flow version (or return the existing one with the same content in its lineage).
+  Validate a Python flow's source against the actions it may call and store it as a new DRAFT version, with the ports and runtime the validation derives (or return the existing one with the same content in its lineage). A source that does not validate is refused.
   """
   createPythonFlow(input: CreatePythonFlowInput!): PythonFlow!
 
@@ -1139,12 +1157,12 @@ type Mutation {
   updatePythonFlow(input: UpdatePythonFlowInput!): PythonFlow!
 
   """
-  Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it is registered as an action.
+  Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it can run and be deployed as an action.
   """
   publishPythonFlow(input: PythonFlowRefInput!): PythonFlow!
 
   """
-  Archive a PUBLISHED Python flow version, so it is no longer registered.
+  Archive a PUBLISHED Python flow version, so it no longer runs (its runs keep pointing at it).
   """
   archivePythonFlow(input: PythonFlowRefInput!): PythonFlow!
 
@@ -1308,7 +1326,7 @@ type ProxyWidget implements AssignWidget {
 }
 
 """
-A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions.
+A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions.
 """
 type PythonFlow @key(fields: "id", resolvable: true) {
   """The unique identifier of this version."""
@@ -1348,7 +1366,7 @@ type PythonFlow @key(fields: "id", resolvable: true) {
   """
   runtime: String!
 
-  """DRAFT, PUBLISHED (registered as an action) or ARCHIVED."""
+  """DRAFT, PUBLISHED (runs, and can be deployed as an action) or ARCHIVED."""
   status: PythonFlowStatus!
 
   """A content hash over source, entrypoint, manifest and runtime."""
@@ -1371,6 +1389,15 @@ type PythonFlow @key(fields: "id", resolvable: true) {
 
   """Every version in this flow's lineage, oldest first."""
   versions: [PythonFlow!]!
+}
+
+"""One problem with a Python flow's source."""
+type PythonFlowDiagnostic {
+  """What is wrong, as the checker reports it."""
+  message: String!
+
+  """The line of the source it is on, when known."""
+  line: Int
 }
 
 input PythonFlowFilter {
@@ -1400,6 +1427,11 @@ input PythonFlowFilter {
 
   """Filter to the versions of one flow"""
   lineage: ID
+
+  """
+  Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
+  """
+  requires: [RequiresInput!]
 }
 
 input PythonFlowOrder @oneOf {
@@ -1414,12 +1446,51 @@ input PythonFlowRefInput {
 }
 
 """
-The lifecycle of a PythonFlow version: only PUBLISHED versions are registered as actions.
+A Python flow's source and the actions it may call: what validatePythonFlow checks.
+"""
+input PythonFlowSourceInput {
+  source: String!
+  entrypoint: String! = "main"
+  manifest: [ManifestEntryInput!]! = []
+
+  """
+  Structure identifiers the entrypoint's signature uses that no action mentions
+  """
+  structures: [String!]! = []
+}
+
+"""
+The lifecycle of a PythonFlow version: only PUBLISHED versions run, and only they can be deployed as actions (a higher-order implementation of run_python_flow).
 """
 enum PythonFlowStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+"""
+What validating a Python flow's source found: the ports, stubs and runtime a version of it would be stored with, or why it would be refused.
+"""
+type PythonFlowValidation {
+  """Whether createPythonFlow would store this source."""
+  ok: Boolean!
+
+  """Why it would not, when it would not."""
+  diagnostics: [PythonFlowDiagnostic!]!
+
+  """
+  The stubs the source is checked against: the manifest's actions and the structures they use, for an editor's completion.
+  """
+  stubs: String!
+
+  """The interpreter and helpers the source was checked against."""
+  runtime: String!
+
+  """The entrypoint's arguments, as rekuest ports (empty unless ok)."""
+  args: [ArgPort!]!
+
+  """The entrypoint's return values, as rekuest ports (empty unless ok)."""
+  returns: [ReturnPort!]!
 }
 
 """
@@ -1475,6 +1546,11 @@ input PythonRunFilter {
 
   """Filter to the runs of these PythonFlow versions"""
   flows: [ID!]
+
+  """
+  Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
+  """
+  requires: [RequiresInput!]
 }
 
 input PythonRunOrder @oneOf {
@@ -1487,6 +1563,7 @@ enum PythonRunStatus {
   RUNNING
   COMPLETED
   FAILED
+  CANCELLED
 }
 
 type Query {
@@ -1527,6 +1604,11 @@ type Query {
   Fetch the events of a run between two logical times, seeded from the latest snapshot at or before the lower bound.
   """
   eventsBetween(run: ID!, min: Int = null, max: Int = null): [RunEvent!]!
+
+  """
+  Check a Python flow's source against the actions it may call, as createPythonFlow would, without storing it: its ports, stubs and runtime, or why it would be refused.
+  """
+  validatePythonFlow(input: PythonFlowSourceInput!): PythonFlowValidation!
 
   """Fetch a single run by id."""
   run(id: ID!): Run!
@@ -2167,6 +2249,11 @@ input RunFilter {
 
   """Search by task id (case-insensitive substring)"""
   search: String
+
+  """
+  Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
+  """
+  requires: [RequiresInput!]
 }
 
 input RunOrder @oneOf {

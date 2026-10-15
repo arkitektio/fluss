@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <4.0"
 
 [[package]]
@@ -474,7 +474,8 @@ engine = [
     { name = "rekuest" },
 ]
 python = [
-    { name = "pydantic-monty" },
+    { name = "arkitekt-runtime" },
+    { name = "fluss-monty" },
     { name = "rekuest" },
 ]
 
@@ -497,9 +498,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "arkitekt-runtime", marker = "extra == 'engine'", specifier = ">=4.3" },
+    { name = "arkitekt-runtime", marker = "extra == 'python'", specifier = ">=4.3" },
     { name = "arkitekt-spec", specifier = ">=3.4" },
     { name = "fakts", specifier = ">=5.4" },
-    { name = "pydantic-monty", marker = "extra == 'python'", specifier = ">=1,<2" },
+    { name = "fluss-monty", marker = "extra == 'python'", specifier = ">=1" },
     { name = "rath", specifier = ">=4.1.1" },
     { name = "rekuest", marker = "extra == 'engine'", specifier = ">=8.0.1" },
     { name = "rekuest", marker = "extra == 'python'", specifier = ">=8.0.1" },
@@ -521,6 +523,19 @@ dev = [
     { name = "python-semantic-release", specifier = ">=9.21.0" },
     { name = "rekuest", specifier = ">=8.0.1" },
     { name = "ruff", specifier = ">=0.0.254" },
+]
+
+[[package]]
+name = "fluss-monty"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pydantic-monty" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b2/c8/7d86e5174db8d12fc587539966a0eb2828da0acf9ea51ee92b3e2ae9078c/fluss_monty-1.0.0.tar.gz", hash = "sha256:055523ab83ac9d5dc668c24cd4530a6867a0ccea27aacbb8594801096cc1c61a", size = 27323, upload-time = "2026-10-15T12:02:54.583Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/da/c3/796d9332bd6308218edb7841cfe03b63d9c743d432b051bb555618af93cb/fluss_monty-1.0.0-py3-none-any.whl", hash = "sha256:530609b1454f2fa6efa5185beec316ea0a62b2713cd958a99d1f7b67a24c5934", size = 29685, upload-time = "2026-10-15T12:02:53.117Z" },
 ]
 
 [[package]]

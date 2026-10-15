@@ -1,23 +1,7 @@
-"""Python flows: validate and run flows written as Python source, in a Monty sandbox.
+"""Python flows on rekuest: the ``run_python_flow`` action, and storing and deploying versions.
 
-Needs the ``python`` extra (``pydantic-monty``). :func:`validate_python_flow` derives the
-report ``createPythonFlow`` stores; :func:`arun_python_flow` runs a source with an injected
-action caller; :func:`run_python_flow` is the rekuest action that runs a published version.
+Checking and running a source is fluss-monty's (:mod:`fluss_monty`), shared with the fluss
+server; this package needs the ``python`` extra. :mod:`.actions` is the rekuest action that
+runs a published version, each call a child task of the run; :mod:`.client` stores a version
+from its source (the server validates it) and deploys a published one as an action of its own.
 """
-
-from .manifest import ManifestAction, ManifestError
-from .runner import ActionCallError, PythonFlowError, PythonFlowLimits, arun_python_flow
-from .validate import RUNTIME, Diagnostic, ValidationReport, validate_python_flow
-
-__all__ = [
-    "ActionCallError",
-    "Diagnostic",
-    "ManifestAction",
-    "ManifestError",
-    "PythonFlowError",
-    "PythonFlowLimits",
-    "RUNTIME",
-    "ValidationReport",
-    "arun_python_flow",
-    "validate_python_flow",
-]

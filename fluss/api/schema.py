@@ -143,7 +143,7 @@ class PortKind(str, Enum):
     __str__ = str.__str__
 
 class PythonFlowStatus(str, Enum):
-    """The lifecycle of a PythonFlow version: only PUBLISHED versions are registered as actions."""
+    """The lifecycle of a PythonFlow version: only PUBLISHED versions run, and only they can be deployed as actions (a higher-order implementation of run_python_flow)."""
     DRAFT = 'DRAFT'
     PUBLISHED = 'PUBLISHED'
     ARCHIVED = 'ARCHIVED'
@@ -154,6 +154,7 @@ class PythonRunStatus(str, Enum):
     RUNNING = 'RUNNING'
     COMPLETED = 'COMPLETED'
     FAILED = 'FAILED'
+    CANCELLED = 'CANCELLED'
     __str__ = str.__str__
 
 class ReactiveImplementation(str, Enum):
@@ -391,20 +392,17 @@ class ComponentPropInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class CreatePythonFlowInput(BaseModel):
-    """A new PythonFlow version, carrying the report the executor's validation produced for its source."""
+    """A new PythonFlow version: its source and the actions it may call. The server validates it and derives its ports and runtime."""
     source: str
     entrypoint: Annotated[str | None, GraphQLDefault('main')] = None
     'Default: main'
+    manifest: Annotated[tuple['ManifestEntryInput', ...] | None, GraphQLDefault('[]')] = None
+    'Default: []'
+    structures: Annotated[tuple[str, ...] | None, GraphQLDefault('[]')] = Field(default=None, description="Structure identifiers the entrypoint's signature uses that no action mentions")
+    "Structure identifiers the entrypoint's signature uses that no action mentions\nDefault: []"
     title: str | None = None
     description: str | None = None
     previous: ID | None = None
-    args: Annotated[tuple[ArgPortInput, ...] | None, GraphQLDefault('[]')] = None
-    'Default: []'
-    returns: Annotated[tuple['ReturnPortInput', ...] | None, GraphQLDefault('[]')] = None
-    'Default: []'
-    manifest: Annotated[tuple['ManifestEntryInput', ...] | None, GraphQLDefault('[]')] = None
-    'Default: []'
-    runtime: str
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class CreatePythonRunInput(BaseModel):
@@ -517,9 +515,14 @@ class GraphNodeInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class ManifestEntryInput(BaseModel):
-    """One action a Python flow may call, as the executor's validation resolved it."""
+    """One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored."""
     alias: str = Field(description='The name the action is injected under in the source')
     action_hash: str = Field(validation_alias=AliasChoices('action_hash', 'actionHash'), serialization_alias='actionHash')
+    kind: ActionKind = Field(description="The action's kind: a Python flow can only call FUNCTION actions")
+    args: Annotated[tuple[ArgPortInput, ...] | None, GraphQLDefault('[]')] = Field(default=None, description="The action's arg ports, which the source's calls are checked against")
+    "The action's arg ports, which the source's calls are checked against\nDefault: []"
+    returns: Annotated[tuple['ReturnPortInput', ...] | None, GraphQLDefault('[]')] = Field(default=None, description="The action's return ports, which the source's use of its results is checked against")
+    "The action's return ports, which the source's use of its results is checked against\nDefault: []"
     app: str | None = None
     key: str | None = None
     version: str | None = None
@@ -545,6 +548,17 @@ class ProvidesInput(BaseModel):
     key: str = Field(description="The key of the provision: the descriptor name the constraint reads, matched verbatim as one flat key of the candidate object (any non-empty string, e.g. 'axes' or '@mikro/n_space_axes')")
     operator: DescriptorOperator = Field(description='The operator for the provision')
     value: Any | None = Field(default=None, description='The value of the provision. This can be any JSON serializable value; IN/NOT_IN take a list, LTE/GTE a number, EXISTS none')
+    model_config = ConfigDict(frozen=True, extra='forbid')
+
+class PythonFlowSourceInput(BaseModel):
+    """A Python flow's source and the actions it may call: what validatePythonFlow checks."""
+    source: str
+    entrypoint: Annotated[str | None, GraphQLDefault('main')] = None
+    'Default: main'
+    manifest: Annotated[tuple[ManifestEntryInput, ...] | None, GraphQLDefault('[]')] = None
+    'Default: []'
+    structures: Annotated[tuple[str, ...] | None, GraphQLDefault('[]')] = Field(default=None, description="Structure identifiers the entrypoint's signature uses that no action mentions")
+    "Structure identifiers the entrypoint's signature uses that no action mentions\nDefault: []"
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class RequiresInput(BaseModel):
@@ -942,7 +956,7 @@ class ManifestEntry(BaseModel):
         type = 'ManifestEntry'
 
 class ListPythonFlow(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -951,7 +965,7 @@ class ListPythonFlow(BaseModel):
     lineage: ID
     'Shared by every version of the same flow.'
     status: PythonFlowStatus
-    'DRAFT, PUBLISHED (registered as an action) or ARCHIVED.'
+    'DRAFT, PUBLISHED (runs, and can be deployed as an action) or ARCHIVED.'
     hash: str
     'A content hash over source, entrypoint, manifest and runtime.'
     created_at: datetime = Field(alias='createdAt')
@@ -965,7 +979,7 @@ class ListPythonFlow(BaseModel):
         type = 'PythonFlow'
 
 class PythonRunFlow(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -1772,14 +1786,14 @@ class BaseGraphNodeReturnNode(EvenBasierGraphNodeReturnNode, BaseGraphNodeBase, 
     typename: Literal['ReturnNode'] = Field(alias='__typename', default='ReturnNode', exclude=True)
 
 class PythonFlowPrevious(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
     model_config = ConfigDict(frozen=True)
 
 class PythonFlow(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -1796,7 +1810,7 @@ class PythonFlow(BaseModel):
     runtime: str
     'The executor runtime (interpreter + helpers) the source was validated against.'
     status: PythonFlowStatus
-    'DRAFT, PUBLISHED (registered as an action) or ARCHIVED.'
+    'DRAFT, PUBLISHED (runs, and can be deployed as an action) or ARCHIVED.'
     hash: str
     'A content hash over source, entrypoint, manifest and runtime.'
     physical: bool
@@ -1818,6 +1832,38 @@ class PythonFlow(BaseModel):
         document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment ManifestEntry on ManifestEntry {\n  alias\n  actionHash\n  app\n  key\n  version\n  effect\n  __typename\n}\n\nfragment PythonFlow on PythonFlow {\n  id\n  title\n  description\n  lineage\n  source\n  entrypoint\n  runtime\n  status\n  hash\n  physical\n  createdAt\n  previous {\n    id\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  manifest {\n    ...ManifestEntry\n    __typename\n  }\n  __typename\n}'
         name = 'PythonFlow'
         type = 'PythonFlow'
+
+class PythonFlowValidationDiagnostics(BaseModel):
+    """One problem with a Python flow's source."""
+    typename: Literal['PythonFlowDiagnostic'] = Field(alias='__typename', default='PythonFlowDiagnostic', exclude=True)
+    message: str
+    'What is wrong, as the checker reports it.'
+    line: int | None = Field(default=None)
+    'The line of the source it is on, when known.'
+    model_config = ConfigDict(frozen=True)
+
+class PythonFlowValidation(BaseModel):
+    """What validating a Python flow's source found: the ports, stubs and runtime a version of it would be stored with, or why it would be refused."""
+    typename: Literal['PythonFlowValidation'] = Field(alias='__typename', default='PythonFlowValidation', exclude=True)
+    ok: bool
+    'Whether createPythonFlow would store this source.'
+    stubs: str
+    "The stubs the source is checked against: the manifest's actions and the structures they use, for an editor's completion."
+    runtime: str
+    'The interpreter and helpers the source was checked against.'
+    diagnostics: tuple[PythonFlowValidationDiagnostics, ...]
+    'Why it would not, when it would not.'
+    args: tuple[FlussArgPort, ...]
+    "The entrypoint's arguments, as rekuest ports (empty unless ok)."
+    returns: tuple[FlussReturnPort, ...]
+    "The entrypoint's return values, as rekuest ports (empty unless ok)."
+    model_config = ConfigDict(frozen=True)
+
+    class Meta:
+        """Meta class for PythonFlowValidation"""
+        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment PythonFlowValidation on PythonFlowValidation {\n  ok\n  stubs\n  runtime\n  diagnostics {\n    message\n    line\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  __typename\n}'
+        name = 'PythonFlowValidation'
+        type = 'PythonFlowValidation'
 
 class ReactiveTemplate(BaseModel):
     """A ReactiveTemplate is a reusable, global catalog entry describing a reactive operator — its implementation (zip, combine-latest, chunk, filter, arithmetic, …) together with its input/output port streams and constants. Reactive nodes in a flow instantiate one of these templates."""
@@ -2082,7 +2128,7 @@ class CreateWorkspaceMutation(BaseModel):
 class CreatePythonFlowMutation(BaseModel):
     """No documentation found for this operation."""
     create_python_flow: PythonFlow = Field(alias='createPythonFlow')
-    'Store a new DRAFT Python flow version (or return the existing one with the same content in its lineage).'
+    "Validate a Python flow's source against the actions it may call and store it as a new DRAFT version, with the ports and runtime the validation derives (or return the existing one with the same content in its lineage). A source that does not validate is refused."
 
     class Arguments(BaseModel):
         """Arguments for CreatePythonFlow """
@@ -2108,7 +2154,7 @@ class UpdatePythonFlowMutation(BaseModel):
 class PublishPythonFlowMutation(BaseModel):
     """No documentation found for this operation."""
     publish_python_flow: PythonFlow = Field(alias='publishPythonFlow')
-    'Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it is registered as an action.'
+    'Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it can run and be deployed as an action.'
 
     class Arguments(BaseModel):
         """Arguments for PublishPythonFlow """
@@ -2121,7 +2167,7 @@ class PublishPythonFlowMutation(BaseModel):
 class ArchivePythonFlowMutation(BaseModel):
     """No documentation found for this operation."""
     archive_python_flow: PythonFlow = Field(alias='archivePythonFlow')
-    'Archive a PUBLISHED Python flow version, so it is no longer registered.'
+    'Archive a PUBLISHED Python flow version, so it no longer runs (its runs keep pointing at it).'
 
     class Arguments(BaseModel):
         """Arguments for ArchivePythonFlow """
@@ -2333,7 +2379,7 @@ class PythonFlowsQuery(BaseModel):
         document = 'fragment ListPythonFlow on PythonFlow {\n  id\n  title\n  lineage\n  status\n  hash\n  createdAt\n  __typename\n}\n\nquery PythonFlows($limit: Int, $status: [PythonFlowStatus!]) {\n  pythonFlows(pagination: {limit: $limit}, filters: {status: $status}) {\n    ...ListPythonFlow\n    __typename\n  }\n}'
 
 class PythonFlowVersionsQueryPythonFlow(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     versions: tuple[ListPythonFlow, ...]
     "Every version in this flow's lineage, oldest first."
@@ -2353,7 +2399,7 @@ class PythonFlowVersionsQuery(BaseModel):
         document = 'fragment ListPythonFlow on PythonFlow {\n  id\n  title\n  lineage\n  status\n  hash\n  createdAt\n  __typename\n}\n\nquery PythonFlowVersions($id: ID!) {\n  pythonFlow(id: $id) {\n    versions {\n      ...ListPythonFlow\n      __typename\n    }\n    __typename\n  }\n}'
 
 class SearchPythonFlowsQueryOptions(BaseModel):
-    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions are registered as actions."""
+    """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     value: ID
     'The unique identifier of this version.'
@@ -2410,6 +2456,19 @@ class SearchPythonRunsQuery(BaseModel):
     class Meta:
         """Meta class for SearchPythonRuns """
         document = 'query SearchPythonRuns($search: String, $values: [ID!]) {\n  options: pythonRuns(filters: {search: $search, ids: $values}) {\n    value: id\n    label: taskId\n    __typename\n  }\n}'
+
+class ValidatePythonFlowQuery(BaseModel):
+    """No documentation found for this operation."""
+    validate_python_flow: PythonFlowValidation = Field(alias='validatePythonFlow')
+    "Check a Python flow's source against the actions it may call, as createPythonFlow would, without storing it: its ports, stubs and runtime, or why it would be refused."
+
+    class Arguments(BaseModel):
+        """Arguments for ValidatePythonFlow """
+        input: PythonFlowSourceInput
+
+    class Meta:
+        """Meta class for ValidatePythonFlow """
+        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment PythonFlowValidation on PythonFlowValidation {\n  ok\n  stubs\n  runtime\n  diagnostics {\n    message\n    line\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  __typename\n}\n\nquery ValidatePythonFlow($input: PythonFlowSourceInput!) {\n  validatePythonFlow(input: $input) {\n    ...PythonFlowValidation\n    __typename\n  }\n}'
 
 class ReactiveTemplatesQuery(BaseModel):
     """No documentation found for this operation."""
@@ -2606,33 +2665,19 @@ Returns:
         variables['input'] = _input
         return self.execute(CreateWorkspaceMutation, variables).create_workspace
 
-    async def acreate_python_flow(self, source: str, entrypoint: str, args: Iterable[ArgPortInput], returns: Iterable[ReturnPortInput], manifest: Iterable[ManifestEntryInput], runtime: str, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, previous: IDCoercible | None | UnsetType=UNSET) -> PythonFlow:
+    async def acreate_python_flow(self, source: str, entrypoint: str, manifest: Iterable[ManifestEntryInput], structures: Iterable[str], title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, previous: IDCoercible | None | UnsetType=UNSET) -> PythonFlow:
         """CreatePythonFlow 
 
-Store a new DRAFT Python flow version (or return the existing one with the same content in its lineage).
+Validate a Python flow's source against the actions it may call and store it as a new DRAFT version, with the ports and runtime the validation derives (or return the existing one with the same content in its lineage). A source that does not validate is refused.
 
 Args:
     source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     entrypoint: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    manifest: One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored. (required) (list) (required)
+    structures: Structure identifiers the entrypoint's signature uses that no action mentions
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     previous: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
-    args: A Port is a single input or output of an action, identified by its `key` and typed by its `kind`.
-
-    STRUCTURE, MEMORY_STRUCTURE and INTERFACE ports carry an `identifier` of the form `@package/key`
-    (e.g. `@mikro/image`); ports with the same identifier are compatible. LIST and DICT ports have one
-    child (the item type), UNION ports two or more (the variants), MODEL ports one per field. ENUM ports
-    declare `choices`. See docs/design/ports.md for the full table.
-     (required) (list) (required)
-    returns: A Port is a single input or output of an action, identified by its `key` and typed by its `kind`.
-
-    STRUCTURE, MEMORY_STRUCTURE and INTERFACE ports carry an `identifier` of the form `@package/key`
-    (e.g. `@mikro/image`); ports with the same identifier are compatible. LIST and DICT ports have one
-    child (the item type), UNION ports two or more (the variants), MODEL ports one per field. ENUM ports
-    declare `choices`. See docs/design/ports.md for the full table.
-     (required) (list) (required)
-    manifest: One action a Python flow may call, as the executor's validation resolved it. (required) (list) (required)
-    runtime: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
 
 Returns:
     PythonFlow
@@ -2641,46 +2686,30 @@ Returns:
         _input: dict[str, builtins.object] = {}
         _input['source'] = source
         _input['entrypoint'] = entrypoint
+        _input['manifest'] = manifest
+        _input['structures'] = structures
         if title is not UNSET:
             _input['title'] = title
         if description is not UNSET:
             _input['description'] = description
         if previous is not UNSET:
             _input['previous'] = previous
-        _input['args'] = args
-        _input['returns'] = returns
-        _input['manifest'] = manifest
-        _input['runtime'] = runtime
         variables['input'] = _input
         return (await self.aexecute(CreatePythonFlowMutation, variables)).create_python_flow
 
-    def create_python_flow(self, source: str, entrypoint: str, args: Iterable[ArgPortInput], returns: Iterable[ReturnPortInput], manifest: Iterable[ManifestEntryInput], runtime: str, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, previous: IDCoercible | None | UnsetType=UNSET) -> PythonFlow:
+    def create_python_flow(self, source: str, entrypoint: str, manifest: Iterable[ManifestEntryInput], structures: Iterable[str], title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, previous: IDCoercible | None | UnsetType=UNSET) -> PythonFlow:
         """CreatePythonFlow 
 
-Store a new DRAFT Python flow version (or return the existing one with the same content in its lineage).
+Validate a Python flow's source against the actions it may call and store it as a new DRAFT version, with the ports and runtime the validation derives (or return the existing one with the same content in its lineage). A source that does not validate is refused.
 
 Args:
     source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     entrypoint: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    manifest: One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored. (required) (list) (required)
+    structures: Structure identifiers the entrypoint's signature uses that no action mentions
     title: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     previous: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
-    args: A Port is a single input or output of an action, identified by its `key` and typed by its `kind`.
-
-    STRUCTURE, MEMORY_STRUCTURE and INTERFACE ports carry an `identifier` of the form `@package/key`
-    (e.g. `@mikro/image`); ports with the same identifier are compatible. LIST and DICT ports have one
-    child (the item type), UNION ports two or more (the variants), MODEL ports one per field. ENUM ports
-    declare `choices`. See docs/design/ports.md for the full table.
-     (required) (list) (required)
-    returns: A Port is a single input or output of an action, identified by its `key` and typed by its `kind`.
-
-    STRUCTURE, MEMORY_STRUCTURE and INTERFACE ports carry an `identifier` of the form `@package/key`
-    (e.g. `@mikro/image`); ports with the same identifier are compatible. LIST and DICT ports have one
-    child (the item type), UNION ports two or more (the variants), MODEL ports one per field. ENUM ports
-    declare `choices`. See docs/design/ports.md for the full table.
-     (required) (list) (required)
-    manifest: One action a Python flow may call, as the executor's validation resolved it. (required) (list) (required)
-    runtime: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
 
 Returns:
     PythonFlow
@@ -2689,16 +2718,14 @@ Returns:
         _input: dict[str, builtins.object] = {}
         _input['source'] = source
         _input['entrypoint'] = entrypoint
+        _input['manifest'] = manifest
+        _input['structures'] = structures
         if title is not UNSET:
             _input['title'] = title
         if description is not UNSET:
             _input['description'] = description
         if previous is not UNSET:
             _input['previous'] = previous
-        _input['args'] = args
-        _input['returns'] = returns
-        _input['manifest'] = manifest
-        _input['runtime'] = runtime
         variables['input'] = _input
         return self.execute(CreatePythonFlowMutation, variables).create_python_flow
 
@@ -2751,7 +2778,7 @@ Returns:
     async def apublish_python_flow(self, id: IDCoercible) -> PythonFlow:
         """PublishPythonFlow 
 
-Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it is registered as an action.
+Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it can run and be deployed as an action.
 
 Args:
     id (ID): No description
@@ -2766,7 +2793,7 @@ Returns:
     def publish_python_flow(self, id: IDCoercible) -> PythonFlow:
         """PublishPythonFlow 
 
-Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it is registered as an action.
+Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it can run and be deployed as an action.
 
 Args:
     id (ID): No description
@@ -2781,7 +2808,7 @@ Returns:
     async def aarchive_python_flow(self, id: IDCoercible) -> PythonFlow:
         """ArchivePythonFlow 
 
-Archive a PUBLISHED Python flow version, so it is no longer registered.
+Archive a PUBLISHED Python flow version, so it no longer runs (its runs keep pointing at it).
 
 Args:
     id (ID): No description
@@ -2796,7 +2823,7 @@ Returns:
     def archive_python_flow(self, id: IDCoercible) -> PythonFlow:
         """ArchivePythonFlow 
 
-Archive a PUBLISHED Python flow version, so it is no longer registered.
+Archive a PUBLISHED Python flow version, so it no longer runs (its runs keep pointing at it).
 
 Args:
     id (ID): No description
@@ -3404,6 +3431,52 @@ Returns:
             variables['values'] = values
         return self.execute(SearchPythonRunsQuery, variables).options
 
+    async def avalidate_python_flow(self, source: str, entrypoint: str, manifest: Iterable[ManifestEntryInput], structures: Iterable[str]) -> PythonFlowValidation:
+        """ValidatePythonFlow 
+
+Check a Python flow's source against the actions it may call, as createPythonFlow would, without storing it: its ports, stubs and runtime, or why it would be refused.
+
+Args:
+    source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    entrypoint: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    manifest: One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored. (required) (list) (required)
+    structures: Structure identifiers the entrypoint's signature uses that no action mentions
+
+Returns:
+    PythonFlowValidation
+"""
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
+        _input['source'] = source
+        _input['entrypoint'] = entrypoint
+        _input['manifest'] = manifest
+        _input['structures'] = structures
+        variables['input'] = _input
+        return (await self.aexecute(ValidatePythonFlowQuery, variables)).validate_python_flow
+
+    def validate_python_flow(self, source: str, entrypoint: str, manifest: Iterable[ManifestEntryInput], structures: Iterable[str]) -> PythonFlowValidation:
+        """ValidatePythonFlow 
+
+Check a Python flow's source against the actions it may call, as createPythonFlow would, without storing it: its ports, stubs and runtime, or why it would be refused.
+
+Args:
+    source: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    entrypoint: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    manifest: One action a Python flow may call, with the ports of that action: the source is checked against them, and only the hash is stored. (required) (list) (required)
+    structures: Structure identifiers the entrypoint's signature uses that no action mentions
+
+Returns:
+    PythonFlowValidation
+"""
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
+        _input['source'] = source
+        _input['entrypoint'] = entrypoint
+        _input['manifest'] = manifest
+        _input['structures'] = structures
+        variables['input'] = _input
+        return self.execute(ValidatePythonFlowQuery, variables).validate_python_flow
+
     async def areactive_templates(self, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[ReactiveTemplate, ...]:
         """ReactiveTemplates 
 
@@ -3606,6 +3679,7 @@ EffectInput.model_rebuild()
 GraphEdgeInput.model_rebuild()
 GraphInput.model_rebuild()
 GraphNodeInput.model_rebuild()
+ManifestEntryInput.model_rebuild()
 ReturnPortInput.model_rebuild()
 SearchAssignWidgetInput.model_rebuild()
 StateAccessorInput.model_rebuild()

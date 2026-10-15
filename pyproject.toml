@@ -25,8 +25,9 @@ dependencies = [
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
 engine = ["rekuest>=8.0.1", "arkitekt-runtime>=4.3"]
-# `fluss.engine.python` validates and runs Python flows in a Monty sandbox.
-python = ["rekuest>=8.0.1", "pydantic-monty>=1,<2"]
+# `fluss.engine.python` runs Python flows on rekuest; checking and running a source is
+# fluss-monty's, which the fluss server validates with too.
+python = ["rekuest>=8.0.1", "arkitekt-runtime>=4.3", "fluss-monty>=1"]
 
 
 [tool.uv]

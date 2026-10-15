@@ -92,6 +92,30 @@ from fluss.engine import run_flow, arun_flow
 It imports rekuest at module level, so install `fluss[engine]` to use it. Importing plain `fluss`
 never requires rekuest.
 
+### Python flows
+
+`fluss.engine.python` (the `python` extra) validates and runs flows written as Python source in a
+Monty sandbox: `async def main(...)` calls the actions of its manifest by alias.
+
+- **Run Python Flow** is a workflow too. Each action call is keyed by the action, a digest of its
+  arguments and how often that exact call was made before, so a resumed run finds its calls
+  again without depending on how its gathered calls interleave. The sandbox's `random` seed is
+  fixed per run, so the run makes the same calls again. One case remains: identical calls in
+  parallel branches may trade results on resume. The calls downstream of them then run again,
+  which repeats an `IRREVERSIBLE` action if one is among them.
+- Its actor shares one Monty worker pool across runs. `print` output reaches the task log while
+  the run goes on. A cancelled run cancels the calls it has in flight and ends `CANCELLED`.
+- Publishing a version makes it runnable, not an action. To call a version like any action,
+  deploy it onto an agent that hosts `run_python_flow`:
+
+```python
+from fluss.engine.python.client import acreate_python_flow_from_source, adeploy_python_flow, amanifest
+
+actions = await amanifest({"segment": segment_hash}, rekuest)
+flow = await acreate_python_flow_from_source(source, actions, fluss, title="Segment", publish=True)
+await adeploy_python_flow(flow, rekuest, runner=run_python_flow_implementation_id)
+```
+
 ## Testing
 
 ```bash

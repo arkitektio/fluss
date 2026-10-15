@@ -53,3 +53,19 @@ fragment PythonRun on PythonRun {
     title
   }
 }
+
+fragment PythonFlowValidation on PythonFlowValidation {
+  ok
+  stubs
+  runtime
+  diagnostics {
+    message
+    line
+  }
+  args {
+    ...FlussArgPort
+  }
+  returns {
+    ...FlussReturnPort
+  }
+}

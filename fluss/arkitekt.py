@@ -122,10 +122,8 @@ def _contribute_run_flow() -> None:
     registry.register_service(rekuest_service)
     register_run_flow(registry)
 
-    # Python flows run in Monty, which is the optional `python` extra.
-    try:
-        import pydantic_monty  # noqa: F401
-    except ImportError:
+    # Python flows run in Monty, through fluss-monty: the optional `python` extra.
+    if importlib.util.find_spec("fluss_monty") is None:
         return
     register_run_python_flow(registry)
 
