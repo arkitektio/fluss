@@ -7,7 +7,7 @@ from fluss.scalars import EventValue
 from fluss.traits import MockableTrait
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from rath.scalars import ID, IDCoercible
-from typing import Annotated, Any, Iterable, Literal
+from typing import Annotated, Any, ClassVar, Iterable, Literal
 
 class GraphQLDefault:
     """Records a GraphQL field schema default value. The client omits the field so the server applies its own default; this preserves the value for introspection."""
@@ -794,6 +794,7 @@ class StreamItem(MockableTrait, BaseModel):
 
 class ListFlowWorkspace(BaseModel):
     """A Workspace is the top-level container that groups the Flows of an organization, mirroring the concept of a project or folder. It is the entry point users edit flows within."""
+    __identifier__: ClassVar[Literal['@fluss/workspace']] = '@fluss/workspace'
     typename: Literal['Workspace'] = Field(alias='__typename', default='Workspace', exclude=True)
     id: ID
     'The unique identifier of the workspace.'
@@ -801,6 +802,7 @@ class ListFlowWorkspace(BaseModel):
 
 class ListFlow(BaseModel):
     """A Flow is a versioned, executable graph of nodes and edges that lives inside a Workspace. It is the concrete definition that Runs (live executions) and Traces (dry runs) are created from. Flows with the same graph hash within a workspace are deduplicated."""
+    __identifier__: ClassVar[Literal['@fluss/flow']] = '@fluss/flow'
     typename: Literal['Flow'] = Field(alias='__typename', default='Flow', exclude=True)
     id: ID
     'The unique identifier of the flow.'
@@ -957,6 +959,7 @@ class ManifestEntry(BaseModel):
 
 class ListPythonFlow(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -980,6 +983,7 @@ class ListPythonFlow(BaseModel):
 
 class PythonRunFlow(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -989,6 +993,7 @@ class PythonRunFlow(BaseModel):
 
 class PythonRun(BaseModel):
     """A PythonRun is one execution of a published PythonFlow for a task; its step-by-step history is that task's child tasks in rekuest."""
+    __identifier__: ClassVar[Literal['@fluss/pythonrun']] = '@fluss/pythonrun'
     typename: Literal['PythonRun'] = Field(alias='__typename', default='PythonRun', exclude=True)
     id: ID
     'The unique identifier of the run.'
@@ -1012,6 +1017,7 @@ class PythonRun(BaseModel):
 
 class RunFlow(BaseModel):
     """A Flow is a versioned, executable graph of nodes and edges that lives inside a Workspace. It is the concrete definition that Runs (live executions) and Traces (dry runs) are created from. Flows with the same graph hash within a workspace are deduplicated."""
+    __identifier__: ClassVar[Literal['@fluss/flow']] = '@fluss/flow'
     typename: Literal['Flow'] = Field(alias='__typename', default='Flow', exclude=True)
     id: ID
     'The unique identifier of the flow.'
@@ -1036,6 +1042,7 @@ class RunEvents(BaseModel):
 
 class Run(BaseModel):
     """A Run is a single live execution of a Flow, tied to a task. As it executes it accumulates RunEvents (per-node values, errors and completions) and periodic Snapshots that capture its state over time."""
+    __identifier__: ClassVar[Literal['@fluss/run']] = '@fluss/run'
     typename: Literal['Run'] = Field(alias='__typename', default='Run', exclude=True)
     id: ID
     'The unique identifier of the run.'
@@ -1101,6 +1108,7 @@ class BaseGraphEdgeVanillaEdge(BaseGraphEdgeBase, BaseModel):
 
 class ListWorkspace(BaseModel):
     """A Workspace is the top-level container that groups the Flows of an organization, mirroring the concept of a project or folder. It is the entry point users edit flows within."""
+    __identifier__: ClassVar[Literal['@fluss/workspace']] = '@fluss/workspace'
     typename: Literal['Workspace'] = Field(alias='__typename', default='Workspace', exclude=True)
     id: ID
     'The unique identifier of the workspace.'
@@ -1787,6 +1795,7 @@ class BaseGraphNodeReturnNode(EvenBasierGraphNodeReturnNode, BaseGraphNodeBase, 
 
 class PythonFlowPrevious(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -1794,6 +1803,7 @@ class PythonFlowPrevious(BaseModel):
 
 class PythonFlow(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     id: ID
     'The unique identifier of this version.'
@@ -2054,6 +2064,7 @@ class Graph(BaseModel):
 
 class FlowWorkspace(BaseModel):
     """A Workspace is the top-level container that groups the Flows of an organization, mirroring the concept of a project or folder. It is the entry point users edit flows within."""
+    __identifier__: ClassVar[Literal['@fluss/workspace']] = '@fluss/workspace'
     typename: Literal['Workspace'] = Field(alias='__typename', default='Workspace', exclude=True)
     id: ID
     'The unique identifier of the workspace.'
@@ -2061,6 +2072,7 @@ class FlowWorkspace(BaseModel):
 
 class Flow(BaseModel):
     """A Flow is a versioned, executable graph of nodes and edges that lives inside a Workspace. It is the concrete definition that Runs (live executions) and Traces (dry runs) are created from. Flows with the same graph hash within a workspace are deduplicated."""
+    __identifier__: ClassVar[Literal['@fluss/flow']] = '@fluss/flow'
     typename: Literal['Flow'] = Field(alias='__typename', default='Flow', exclude=True)
     id: ID
     'The unique identifier of the flow.'
@@ -2084,6 +2096,7 @@ class Flow(BaseModel):
 
 class Workspace(BaseModel):
     """A Workspace is the top-level container that groups the Flows of an organization, mirroring the concept of a project or folder. It is the entry point users edit flows within."""
+    __identifier__: ClassVar[Literal['@fluss/workspace']] = '@fluss/workspace'
     typename: Literal['Workspace'] = Field(alias='__typename', default='Workspace', exclude=True)
     id: ID
     'The unique identifier of the workspace.'
@@ -2218,6 +2231,7 @@ class ClosePythonRunMutation(BaseModel):
 
 class CreateRunMutationCreateRun(BaseModel):
     """A Run is a single live execution of a Flow, tied to a task. As it executes it accumulates RunEvents (per-node values, errors and completions) and periodic Snapshots that capture its state over time."""
+    __identifier__: ClassVar[Literal['@fluss/run']] = '@fluss/run'
     typename: Literal['Run'] = Field(alias='__typename', default='Run', exclude=True)
     id: ID
     'The unique identifier of the run.'
@@ -2238,6 +2252,7 @@ class CreateRunMutation(BaseModel):
 
 class CloseRunMutationCloseRun(BaseModel):
     """A Run is a single live execution of a Flow, tied to a task. As it executes it accumulates RunEvents (per-node values, errors and completions) and periodic Snapshots that capture its state over time."""
+    __identifier__: ClassVar[Literal['@fluss/run']] = '@fluss/run'
     typename: Literal['Run'] = Field(alias='__typename', default='Run', exclude=True)
     id: ID
     'The unique identifier of the run.'
@@ -2330,6 +2345,7 @@ class FlowsQuery(BaseModel):
 
 class SearchFlowsQueryOptions(BaseModel):
     """A Flow is a versioned, executable graph of nodes and edges that lives inside a Workspace. It is the concrete definition that Runs (live executions) and Traces (dry runs) are created from. Flows with the same graph hash within a workspace are deduplicated."""
+    __identifier__: ClassVar[Literal['@fluss/flow']] = '@fluss/flow'
     typename: Literal['Flow'] = Field(alias='__typename', default='Flow', exclude=True)
     value: ID
     'The unique identifier of the flow.'
@@ -2380,6 +2396,7 @@ class PythonFlowsQuery(BaseModel):
 
 class PythonFlowVersionsQueryPythonFlow(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     versions: tuple[ListPythonFlow, ...]
     "Every version in this flow's lineage, oldest first."
@@ -2400,6 +2417,7 @@ class PythonFlowVersionsQuery(BaseModel):
 
 class SearchPythonFlowsQueryOptions(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
+    __identifier__: ClassVar[Literal['@fluss/pythonflow']] = '@fluss/pythonflow'
     typename: Literal['PythonFlow'] = Field(alias='__typename', default='PythonFlow', exclude=True)
     value: ID
     'The unique identifier of this version.'
@@ -2436,6 +2454,7 @@ class GetPythonRunQuery(BaseModel):
 
 class SearchPythonRunsQueryOptions(BaseModel):
     """A PythonRun is one execution of a published PythonFlow for a task; its step-by-step history is that task's child tasks in rekuest."""
+    __identifier__: ClassVar[Literal['@fluss/pythonrun']] = '@fluss/pythonrun'
     typename: Literal['PythonRun'] = Field(alias='__typename', default='PythonRun', exclude=True)
     value: ID
     'The unique identifier of the run.'
@@ -2511,6 +2530,7 @@ class RunQuery(BaseModel):
 
 class SearchRunsQueryOptions(BaseModel):
     """A Run is a single live execution of a Flow, tied to a task. As it executes it accumulates RunEvents (per-node values, errors and completions) and periodic Snapshots that capture its state over time."""
+    __identifier__: ClassVar[Literal['@fluss/run']] = '@fluss/run'
     typename: Literal['Run'] = Field(alias='__typename', default='Run', exclude=True)
     value: ID
     'The unique identifier of the run.'

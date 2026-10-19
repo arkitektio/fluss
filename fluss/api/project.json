@@ -82,6 +82,13 @@
                 ]
             },
             "additional_config": {},
+            "directive_class_vars": [
+                {
+                    "directive": "identified",
+                    "argument": "by",
+                    "attribute": "__identifier__"
+                }
+            ],
             "force_plugin_order": true,
             "omitted_document_rules": [],
             "parsers": [],

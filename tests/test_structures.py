@@ -56,3 +56,13 @@ def test_merging_stamps_the_service_that_owns_them() -> None:
 
     services = {s.service for s in app.structure_registry.structures()}
     assert services == {"fluss"}
+
+
+def test_every_structure_class_the_server_identifies_says_so_itself() -> None:
+    """`__identifier__` (turms over `@identified`) agrees with the identifier each class is registered under."""
+    stamped = {
+        identifier: getattr(structure.cls, "__identifier__", None)
+        for identifier, structure in declared.registry.structure_registry.identifier_structure_map.items()
+    }
+    assert {i: s for i, s in stamped.items() if s is not None} == {i: i for i, s in stamped.items() if s is not None}
+    assert any(s is not None for s in stamped.values())
