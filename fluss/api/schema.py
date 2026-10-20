@@ -2452,6 +2452,19 @@ class GetPythonRunQuery(BaseModel):
         """Meta class for GetPythonRun """
         document = 'fragment PythonRun on PythonRun {\n  id\n  taskId\n  status\n  createdAt\n  finishedAt\n  flow {\n    id\n    title\n    __typename\n  }\n  __typename\n}\n\nquery GetPythonRun($id: ID!) {\n  pythonRun(id: $id) {\n    ...PythonRun\n    __typename\n  }\n}'
 
+class GetPythonRunForTaskQuery(BaseModel):
+    """No documentation found for this operation."""
+    python_run_for_task: PythonRun = Field(alias='pythonRunForTask')
+    'Fetch the Python flow run created for a given task id.'
+
+    class Arguments(BaseModel):
+        """Arguments for GetPythonRunForTask """
+        id: ID
+
+    class Meta:
+        """Meta class for GetPythonRunForTask """
+        document = 'fragment PythonRun on PythonRun {\n  id\n  taskId\n  status\n  createdAt\n  finishedAt\n  flow {\n    id\n    title\n    __typename\n  }\n  __typename\n}\n\nquery GetPythonRunForTask($id: ID!) {\n  pythonRunForTask(id: $id) {\n    ...PythonRun\n    __typename\n  }\n}'
+
 class SearchPythonRunsQueryOptions(BaseModel):
     """A PythonRun is one execution of a published PythonFlow for a task; its step-by-step history is that task's child tasks in rekuest."""
     __identifier__: ClassVar[Literal['@fluss/pythonrun']] = '@fluss/pythonrun'
@@ -3412,6 +3425,36 @@ Returns:
         variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return self.execute(GetPythonRunQuery, variables).python_run
+
+    async def aget_python_run_for_task(self, id: IDCoercible) -> PythonRun:
+        """GetPythonRunForTask 
+
+Fetch the Python flow run created for a given task id.
+
+Args:
+    id (ID): No description
+
+Returns:
+    PythonRun
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['id'] = id
+        return (await self.aexecute(GetPythonRunForTaskQuery, variables)).python_run_for_task
+
+    def get_python_run_for_task(self, id: IDCoercible) -> PythonRun:
+        """GetPythonRunForTask 
+
+Fetch the Python flow run created for a given task id.
+
+Args:
+    id (ID): No description
+
+Returns:
+    PythonRun
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['id'] = id
+        return self.execute(GetPythonRunForTaskQuery, variables).python_run_for_task
 
     async def asearch_python_runs(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET) -> tuple[SearchPythonRunsQueryOptions, ...]:
         """SearchPythonRuns 

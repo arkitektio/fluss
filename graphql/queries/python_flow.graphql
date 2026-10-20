@@ -31,6 +31,12 @@ query GetPythonRun($id: ID!) {
   }
 }
 
+query GetPythonRunForTask($id: ID!) {
+  pythonRunForTask(id: $id) {
+    ...PythonRun
+  }
+}
+
 query SearchPythonRuns($search: String, $values: [ID!]) {
   options: pythonRuns(filters: { search: $search, ids: $values }) {
     value: id

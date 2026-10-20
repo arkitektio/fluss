@@ -1704,6 +1704,9 @@ type Query {
   """Fetch a single Python flow run by id."""
   pythonRun(id: ID!): PythonRun!
 
+  """Fetch the Python flow run created for a given task id."""
+  pythonRunForTask(id: ID!): PythonRun!
+
   """Fetch a single run snapshot by id."""
   snapshot(id: ID!): Snapshot!
 }
