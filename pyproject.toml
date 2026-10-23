@@ -13,9 +13,9 @@ dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec.
-    "arkitekt-spec>=3.4",
+    "arkitekt-spec>=3.19.1",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
-    "fakts>=5.4",
+    "fakts>=6.1",
 ]
 
 [project.optional-dependencies]

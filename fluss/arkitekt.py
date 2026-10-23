@@ -59,8 +59,8 @@ def fluss(
             link=FlussLinkComposition(
                 auth=FaktsAuthLink(token_loader=tokens),
                 split=SplitLink(
-                    left=AIOHttpLink(endpoint_url=fluss.to_http_path("graphql"), proxy=fluss.proxy),
-                    right=GraphQLWSLink(ws_endpoint_url=fluss.to_ws_path("graphql"), proxy=fluss.proxy),
+                    left=AIOHttpLink(endpoint_url=fluss.to_http_path("graphql"), proxy=fluss.proxy, ssl_context=fluss.ssl_context()),
+                    right=GraphQLWSLink(ws_endpoint_url=fluss.to_ws_path("graphql"), proxy=fluss.proxy, ssl_context=fluss.ssl_context()),
                     split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
                 ),
             )
