@@ -313,21 +313,21 @@ class StringAssignWidgetInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class ActionArgumentInput(BaseModel):
-    """A JSON-serializable argument entry for a multi-agent action trigger."""
+    """An argument of a call: a literal, a path, a nested call, a list or an object; null when it sets none."""
     key: str | None = Field(default=None, description='The argument property name.')
-    value_literal: Any | None = Field(validation_alias=AliasChoices('value_literal', 'valueLiteral'), serialization_alias='valueLiteral', default=None, description='Static literal value if not dynamically bound.')
-    value_path: str | None = Field(validation_alias=AliasChoices('value_path', 'valuePath'), serialization_alias='valuePath', default=None, description='JSON Pointer referencing the shared Blok state to inject into this argument slot dynamically.')
+    value_literal: Any | None = Field(validation_alias=AliasChoices('value_literal', 'valueLiteral'), serialization_alias='valueLiteral', default=None, description='A JSON literal.')
+    value_path: str | None = Field(validation_alias=AliasChoices('value_path', 'valuePath'), serialization_alias='valuePath', default=None, description="A path the argument reads, as a prop's dynamic_value does.")
     agent_call: 'AgentProbeInput | None' = Field(validation_alias=AliasChoices('agent_call', 'agentCall'), serialization_alias='agentCall', default=None, description='Defines a nested agent call if this argument should trigger an agent interaction.')
-    util_call: 'UtilCallInput | None' = Field(validation_alias=AliasChoices('util_call', 'utilCall'), serialization_alias='utilCall', default=None, description='Defines a nested utility call if this argument should trigger a system utility interaction.')
+    util_call: 'UtilCallInput | None' = Field(validation_alias=AliasChoices('util_call', 'utilCall'), serialization_alias='utilCall', default=None, description='A nested function call.')
     value_list: tuple['ActionArgumentInput', ...] | None = Field(validation_alias=AliasChoices('value_list', 'valueList'), serialization_alias='valueList', default=None, description='Defines a list of values if this argument should be an array.')
     value_dict: tuple['ActionArgumentInput', ...] | None = Field(validation_alias=AliasChoices('value_dict', 'valueDict'), serialization_alias='valueDict', default=None, description='Defines a list of key-value pairs if this argument should be a dictionary.')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class AgentProbeInput(BaseModel):
     """Defines a callback that routes user interactions directly to an Arkitekt Agent via Rekuest."""
-    dependency: str = Field(description="The abstract agent dependency key declared in the Blok manifest (e.g., 'stage_dep').")
-    operation: str = Field(description="The target function name registered on that specific agent's worker thread loop.")
-    arguments: tuple[ActionArgumentInput, ...] | None = Field(default=None, description='Key-value arguments map compiled for the target agent call.')
+    dependency: str = Field(description='`self`, or the dependency key the task goes to (`deps.<key>`).')
+    operation: str = Field(description="The action called, by its key in the dependency's action demands.")
+    arguments: tuple[ActionArgumentInput, ...] | None = Field(default=None, description='Its arguments, each named.')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class ArgPortInput(BaseModel):
@@ -382,13 +382,13 @@ class ClosePythonRunInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class ComponentPropInput(BaseModel):
-    """A single key-value prop configuration for a component layout node."""
+    """One prop of a component node: a literal, a path, a function call, a task call (named by `declaresValue`), an effect (`query.refetch`, `query.fetch_more`, `ui.copy`, `task.answer`), or nothing (null)."""
     key: str = Field(description='The prop key name matching the target UI catalog constraint.')
-    static_value: Any | None = Field(validation_alias=AliasChoices('static_value', 'staticValue'), serialization_alias='staticValue', default=None, description="A raw scalar or JSON-stringified literal configuration parameter (e.g. '40x' or True).")
-    dynamic_value: 'DynamicValueInput | None' = Field(validation_alias=AliasChoices('dynamic_value', 'dynamicValue'), serialization_alias='dynamicValue', default=None, description='A reactive state data-binding rule.')
-    declares_value: str | None = Field(validation_alias=AliasChoices('declares_value', 'declaresValue'), serialization_alias='declaresValue', default=None, description="If set, this prop declares a new 'value' in the Blok state that can be referenced by other props or actions. The value of this field should be the name of the declared value (e.g., 'selected_user').")
-    agent_call: AgentProbeInput | None = Field(validation_alias=AliasChoices('agent_call', 'agentCall'), serialization_alias='agentCall', default=None, description='Defines an imperative interactive network action callback loop if this prop should trigger an agent interaction.')
-    util_call: 'UtilCallInput | None' = Field(validation_alias=AliasChoices('util_call', 'utilCall'), serialization_alias='utilCall', default=None, description='Defines an imperative interactive network action callback loop if this prop should trigger a system utility interaction.')
+    static_value: Any | None = Field(validation_alias=AliasChoices('static_value', 'staticValue'), serialization_alias='staticValue', default=None, description='A JSON literal: a string, number, bool, list or object.')
+    dynamic_value: 'DynamicValueInput | None' = Field(validation_alias=AliasChoices('dynamic_value', 'dynamicValue'), serialization_alias='dynamicValue', default=None, description='A path the prop reads.')
+    declares_value: str | None = Field(validation_alias=AliasChoices('declares_value', 'declaresValue'), serialization_alias='declaresValue', default=None, description='The name a task call writes its record to (`... into move`), or the loop variable of a `foreach` (its `let`).')
+    agent_call: AgentProbeInput | None = Field(validation_alias=AliasChoices('agent_call', 'agentCall'), serialization_alias='agentCall', default=None, description="A task call: a callback's one thing.")
+    util_call: 'UtilCallInput | None' = Field(validation_alias=AliasChoices('util_call', 'utilCall'), serialization_alias='utilCall', default=None, description="A function the prop's value is, or in a callback the effect it runs (ui.copy, task.answer, query.refetch, query.fetch_more).")
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class CreatePythonFlowInput(BaseModel):
@@ -430,7 +430,7 @@ class CreateWorkspaceInput(BaseModel):
 class DynamicValueInput(BaseModel):
     """A bound state pointer referencing a variable inside a Blok state instance."""
     literal: str | None = Field(default=None, description='A static fallback literal value (serialized string or JSON primitive) used when `path` does not resolve.')
-    path: str | None = Field(default=None, description="JSON Pointer to a variable inside the Blok's isolated data model (e.g., '/microscope/exposure').")
+    path: str | None = Field(default=None, description='The path the prop reads: a root (`self`, `deps`, `args`, `task`, `queries`, `subscriptions`, `viewer`, `then`, `event`, `error`), a local, a loop variable or a record, and what follows it.')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class EffectInput(BaseModel):
@@ -646,7 +646,7 @@ class UpdateWorkspaceInput(BaseModel):
 
 class UtilCallInput(BaseModel):
     """Defines a utility call that can be invoked within the system."""
-    operation: str = Field(description='The utility function name to invoke.')
+    operation: str = Field(description='The function called (`str.upper`), or in a callback the effect (`ui.copy`, `task.answer`).')
     arguments: tuple[ActionArgumentInput, ...] | None = Field(default=None, description='Key-value arguments map compiled for the target utility call.')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
@@ -1221,7 +1221,7 @@ class FlussComponentPropDynamicValue(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 class FlussComponentProp(BaseModel):
-    """A single key-value prop configuration for a component layout node."""
+    """One prop of a component node: a literal, a path, a function call, a task call (named by `declaresValue`), an effect, or nothing (null)."""
     typename: Literal['ComponentProp'] = Field(alias='__typename', default='ComponentProp', exclude=True)
     key: str
     static_value: Any | None = Field(default=None, alias='staticValue')
