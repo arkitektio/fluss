@@ -12,8 +12,8 @@ license-files = ["LICENSE"]
 dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
-    # The service and structures are declared with arkitekt-spec (4.1: a service's scopes).
-    "arkitekt-spec>=4.1",
+    # The service and structures are declared with arkitekt-spec (5.0: a service reads its scopes off its client).
+    "arkitekt-spec>=5.0",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
     "fakts>=6.1",
 ]
@@ -41,7 +41,7 @@ dev-dependencies =  [
     "black>=23.1.0,<24",
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
-    "turms>=2.3.0",
+    "turms>=3.0",
     "dokker>=2.8",
     "rekuest>=8.0.1",
     "basedpyright>=1.21",
