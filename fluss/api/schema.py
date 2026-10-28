@@ -3731,6 +3731,7 @@ Returns:
         if pagination is not UNSET:
             variables['pagination'] = pagination
         return self.execute(WorkspacesQuery, variables).workspaces
+SCOPES: list[str] = ['fluss_publish', 'fluss_read', 'fluss_run', 'fluss_write']
 ActionArgumentInput.model_rebuild()
 ArgPortInput.model_rebuild()
 ComponentPropInput.model_rebuild()

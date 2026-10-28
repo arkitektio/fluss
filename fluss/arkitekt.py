@@ -24,6 +24,7 @@ from fluss.api.schema import (
     PythonFlow,
     PythonRun,
     Run,
+    SCOPES,
     SearchFlowsQuery,
     SearchPythonFlowsQuery,
     SearchPythonRunsQuery,
@@ -45,6 +46,9 @@ registry = AppRegistry()
 @registry.service(
     schema=build_relative_path("api", "schema.graphql"),
     turms=build_relative_path("api", "project.json"),
+    # What the client's operations need at fluss, as turms gathered it from the schema: every
+    # app using fluss asks for it.
+    scopes=SCOPES,
 )
 def fluss(
     fluss: Annotated[

@@ -1170,77 +1170,77 @@ type MessageEffect implements Effect {
 
 type Mutation {
   """Create an empty collaboration, to put objects in and grant a guest"""
-  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Put an object in a collaboration, with what it needs to be seen: a run brings its flow, a flow its workspace, a workspace its flows
   """
-  addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Take an object out of a collaboration, with what it brought that nothing else there needs
   """
-  removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Delete a collaboration: whoever was granted it sees nothing of it any more
   """
-  deleteCollaboration(id: ID!): ID! @auth(any_role_of: ["admin", "editor"])
+  deleteCollaboration(id: ID!): ID! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Update a workspace's metadata and upsert the flow for the posted graph.
   """
-  updateWorkspace(input: UpdateWorkspaceInput!): Workspace!
+  updateWorkspace(input: UpdateWorkspaceInput!): Workspace! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """Create a new workspace, seeded with an initial flow."""
-  createWorkspace(input: CreateWorkspaceInput!): Workspace!
+  createWorkspace(input: CreateWorkspaceInput!): Workspace! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """Start (or reuse) a run of a flow for a given task."""
-  createRun(input: CreateRunInput!): Run!
+  createRun(input: CreateRunInput!): Run! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Mark a run as COMPLETED."""
-  closeRun(input: CloseRunInput!): Run!
+  closeRun(input: CloseRunInput!): Run! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Delete a run and its events and snapshots."""
-  deleteRun(input: DeleteRunInput!): ID!
+  deleteRun(input: DeleteRunInput!): ID! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Capture a state snapshot of a run at a logical time."""
-  snapshot(input: SnapshotRunInput!): Snapshot!
+  snapshot(input: SnapshotRunInput!): Snapshot! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Delete a run snapshot."""
-  deleteSnapshot(input: DeleteSnapshotInput!): ID!
+  deleteSnapshot(input: DeleteSnapshotInput!): ID! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Record a single run event (a value, error or completion) for a run."""
-  track(input: TrackInput!): RunEvent!
+  track(input: TrackInput!): RunEvent! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """
   Validate a Python flow's source against the actions it may call and store it as a new DRAFT version, with the ports and runtime the validation derives (or return the existing one with the same content in its lineage). A source that does not validate is refused.
   """
-  createPythonFlow(input: CreatePythonFlowInput!): PythonFlow!
+  createPythonFlow(input: CreatePythonFlowInput!): PythonFlow! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """Change a Python flow version's title or description."""
-  updatePythonFlow(input: UpdatePythonFlowInput!): PythonFlow!
+  updatePythonFlow(input: UpdatePythonFlowInput!): PythonFlow! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """
   Publish a DRAFT (or re-publish an ARCHIVED) Python flow version, so it can run and be deployed as an action.
   """
-  publishPythonFlow(input: PythonFlowRefInput!): PythonFlow!
+  publishPythonFlow(input: PythonFlowRefInput!): PythonFlow! @auth(required_scopes: ["fluss_publish"], any_role_of: ["fluss_publisher"])
 
   """
   Archive a PUBLISHED Python flow version, so it no longer runs (its runs keep pointing at it).
   """
-  archivePythonFlow(input: PythonFlowRefInput!): PythonFlow!
+  archivePythonFlow(input: PythonFlowRefInput!): PythonFlow! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """Delete a DRAFT Python flow version."""
-  deletePythonFlow(input: PythonFlowRefInput!): ID!
+  deletePythonFlow(input: PythonFlowRefInput!): ID! @auth(required_scopes: ["fluss_write"], any_role_of: ["fluss_editor"])
 
   """
   Start (or reuse) the run of a published Python flow version for a task.
   """
-  createPythonRun(input: CreatePythonRunInput!): PythonRun!
+  createPythonRun(input: CreatePythonRunInput!): PythonRun! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 
   """Finish a Python flow run as COMPLETED or FAILED."""
-  closePythonRun(input: ClosePythonRunInput!): PythonRun!
+  closePythonRun(input: ClosePythonRunInput!): PythonRun! @auth(required_scopes: ["fluss_run"], any_role_of: ["fluss_editor"])
 }
 
 input OffsetPaginationInput {
@@ -1636,73 +1636,73 @@ type Query {
   _service: _Service!
 
   """List all flows in your organization."""
-  flows(filters: FlowFilter, ordering: [FlowOrder!]! = [], pagination: OffsetPaginationInput): [Flow!]!
+  flows(filters: FlowFilter, ordering: [FlowOrder!]! = [], pagination: OffsetPaginationInput): [Flow!]! @auth(required_scopes: ["fluss_read"])
 
   """List all runs in your organization."""
-  runs(filters: RunFilter, ordering: [RunOrder!]! = [], pagination: OffsetPaginationInput): [Run!]!
+  runs(filters: RunFilter, ordering: [RunOrder!]! = [], pagination: OffsetPaginationInput): [Run!]! @auth(required_scopes: ["fluss_read"])
 
   """List all run snapshots in your organization."""
-  snapshots(filters: SnapshotFilter, ordering: [SnapshotOrder!]! = [], pagination: OffsetPaginationInput): [Snapshot!]!
+  snapshots(filters: SnapshotFilter, ordering: [SnapshotOrder!]! = [], pagination: OffsetPaginationInput): [Snapshot!]! @auth(required_scopes: ["fluss_read"])
 
   """List all workspaces in your organization."""
-  workspaces(filters: WorkspaceFilter, ordering: [WorkspaceOrder!]! = [], pagination: OffsetPaginationInput): [Workspace!]!
+  workspaces(filters: WorkspaceFilter, ordering: [WorkspaceOrder!]! = [], pagination: OffsetPaginationInput): [Workspace!]! @auth(required_scopes: ["fluss_read"])
 
   """List all reactive operator templates (a shared, global catalog)."""
-  reactiveTemplates(filters: ReactiveTemplateFilter, ordering: [ReactiveTemplateOrder!]! = [], pagination: OffsetPaginationInput): [ReactiveTemplate!]!
+  reactiveTemplates(filters: ReactiveTemplateFilter, ordering: [ReactiveTemplateOrder!]! = [], pagination: OffsetPaginationInput): [ReactiveTemplate!]! @auth(required_scopes: ["fluss_read"])
 
   """List all Python flow versions in your organization."""
-  pythonFlows(filters: PythonFlowFilter, ordering: [PythonFlowOrder!]! = [], pagination: OffsetPaginationInput): [PythonFlow!]!
+  pythonFlows(filters: PythonFlowFilter, ordering: [PythonFlowOrder!]! = [], pagination: OffsetPaginationInput): [PythonFlow!]! @auth(required_scopes: ["fluss_read"])
 
   """List all Python flow runs in your organization."""
-  pythonRuns(filters: PythonRunFilter, ordering: [PythonRunOrder!]! = [], pagination: OffsetPaginationInput): [PythonRun!]!
+  pythonRuns(filters: PythonRunFilter, ordering: [PythonRunOrder!]! = [], pagination: OffsetPaginationInput): [PythonRun!]! @auth(required_scopes: ["fluss_read"])
 
   """Aggregate statistics over the workspaces in your organization."""
-  workspaceStats(filters: WorkspaceFilter = null): WorkspaceStats!
+  workspaceStats(filters: WorkspaceFilter = null): WorkspaceStats! @auth(required_scopes: ["fluss_read"])
 
   """
   List the organization's collaborations: what a guest granted one sees of it (a guest: the collaborations granted to them)
   """
-  collaborations: [Collaboration!]!
+  collaborations: [Collaboration!]! @auth(required_scopes: ["fluss_read"])
 
   """Get a single collaboration by ID"""
-  collaboration(id: ID!): Collaboration!
+  collaboration(id: ID!): Collaboration! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single workspace by id."""
-  workspace(id: ID!): Workspace!
+  workspace(id: ID!): Workspace! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single reactive template by id."""
-  reactiveTemplate(id: ID!): ReactiveTemplate!
+  reactiveTemplate(id: ID!): ReactiveTemplate! @auth(required_scopes: ["fluss_read"])
 
   """
   Fetch the events of a run between two logical times, seeded from the latest snapshot at or before the lower bound.
   """
-  eventsBetween(run: ID!, min: Int = null, max: Int = null): [RunEvent!]!
+  eventsBetween(run: ID!, min: Int = null, max: Int = null): [RunEvent!]! @auth(required_scopes: ["fluss_read"])
 
   """
   Check a Python flow's source against the actions it may call, as createPythonFlow would, without storing it: its ports, stubs and runtime, or why it would be refused.
   """
-  validatePythonFlow(input: PythonFlowSourceInput!): PythonFlowValidation!
+  validatePythonFlow(input: PythonFlowSourceInput!): PythonFlowValidation! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single run by id."""
-  run(id: ID!): Run!
+  run(id: ID!): Run! @auth(required_scopes: ["fluss_read"])
 
   """Fetch the run created for a given task id."""
-  runForTask(id: ID!): Run!
+  runForTask(id: ID!): Run! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single flow by id."""
-  flow(id: ID!): Flow!
+  flow(id: ID!): Flow! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single Python flow version by id."""
-  pythonFlow(id: ID!): PythonFlow!
+  pythonFlow(id: ID!): PythonFlow! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single Python flow run by id."""
-  pythonRun(id: ID!): PythonRun!
+  pythonRun(id: ID!): PythonRun! @auth(required_scopes: ["fluss_read"])
 
   """Fetch the Python flow run created for a given task id."""
-  pythonRunForTask(id: ID!): PythonRun!
+  pythonRunForTask(id: ID!): PythonRun! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single run snapshot by id."""
-  snapshot(id: ID!): Snapshot!
+  snapshot(id: ID!): Snapshot! @auth(required_scopes: ["fluss_read"])
 }
 
 enum ReactiveImplementation {
@@ -2572,7 +2572,7 @@ input StringAssignWidgetInput @unionElementOf(union: "AssignWidgetInput", discri
 
 type Subscription {
   """Subscribe to the live stream of events for a given run."""
-  events(run: ID!): RunEvent!
+  events(run: ID!): RunEvent! @auth(required_scopes: ["fluss_read"])
 }
 
 type TimeBucket {
