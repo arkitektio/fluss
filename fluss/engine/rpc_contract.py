@@ -71,9 +71,20 @@ class DirectContract(KoiledModel):
 
     _calls: int = PrivateAttr(default=0)
 
-    def _caller(self) -> Any:  # noqa: ANN401 -- a Task or a Rekuest; they share no base
-        """Whichever of the two makes a call of the right kind. Their raw signatures match."""
-        return self.task if self.task is not None else self.rekuest
+    def _caller(self) -> Any:  # noqa: ANN401 -- a Task or a RekuestCaller; they share no base
+        """Whichever of the two makes a call of the right kind. Their raw signatures match.
+
+        Without a task the call is a root, which only the caller client starts: the app
+        running the flow takes in ``rekuest_caller_service`` for that.
+        """
+        if self.task is not None:
+            return self.task
+        if not hasattr(self.rekuest, "acall_raw"):
+            raise RuntimeError(
+                "A flow run outside a task starts its calls as tasks of their own, which takes "
+                "the caller client: give the app rekuest_caller_service, or run the flow as a task."
+            )
+        return self.rekuest
 
     def _keyed(self) -> dict[str, Any]:
         """The call key of this node's next call, when it is a task's child.

@@ -434,13 +434,13 @@ async def test_run_flow_action_is_registered() -> None:
     assert [port.key for port in implementation.definition.returns] == ["returns"]
 
     builder = actor_builder_for(registry, "run_flow")
-    assert builder.keywords["expand_inputs"] is False
-    assert builder.keywords["shrink_outputs"] is False
-    assert builder.keywords["concurrency"] == "parallel"
+    assert builder.builder.keywords["expand_inputs"] is False
+    assert builder.builder.keywords["shrink_outputs"] is False
+    assert builder.builder.keywords["concurrency"] == "parallel"
 
     # An agent builds actors against the registry it serves: a run's snapshot,
     # never the module-level registry every app shares.
     snapshot = registry.snapshot()
     served = actor_builder_for(snapshot, "run_flow")
-    assert served.keywords["structure_registry"] is snapshot.structure_registry
-    assert builder.keywords["structure_registry"] is registry.structure_registry
+    assert served.builder.keywords["structure_registry"] is snapshot.structure_registry
+    assert builder.builder.keywords["structure_registry"] is registry.structure_registry

@@ -25,6 +25,8 @@ RUN_FLOW_CONFIG = RegisterConfig(
     bypass_shrink=True,
     concurrency="parallel",
     execution=Execution.WORKFLOW,
+    # Its nodes call whatever actions the flow names: found at run time, not declared.
+    dynamic_calls=True,
 )
 
 
@@ -47,6 +49,8 @@ RUN_PYTHON_FLOW_CONFIG = RegisterConfig(
     bypass_shrink=True,
     concurrency="parallel",
     execution=Execution.WORKFLOW,
+    # Its nodes call whatever actions the flow names: found at run time, not declared.
+    dynamic_calls=True,
 )
 
 
