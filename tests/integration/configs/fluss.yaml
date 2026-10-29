@@ -23,9 +23,12 @@ authentikate:
     issuer: https://go.arkitekt.live
     jwks_uri: https://go.arkitekt.live/lok/o/jwks/
   static_tokens:
+    # What a logged-in app's token would carry: fluss enforces scopes and roles since 9.
     test:
       sub: 1
       iss: lok
+      scope: openid profile email fluss_all
+      roles: [fluss_admin]
 redis:   
   host: redis
   port: 6379
