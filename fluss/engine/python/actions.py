@@ -12,7 +12,8 @@ closed when the agent cancels the actor.
 import asyncio
 import contextlib
 from functools import partial
-from typing import Any, AsyncGenerator, Dict, Optional, Self, Tuple
+from typing import Any, Self
+from collections.abc import AsyncGenerator
 
 import pydantic_monty
 from pydantic import PrivateAttr
@@ -117,12 +118,12 @@ async def resolve_manifest(flow: PythonFlow, rekuest: Rekuest) -> dict[str, tupl
 
 async def run_python_flow(
     flow: str,
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     fluss: Fluss,
     rekuest: Rekuest,
     task: Task,
     pool: MontyPool | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run Python Flow
 
     Runs a published Python flow version with pre-validated, shrunk argument values keyed by
@@ -145,7 +146,7 @@ async def run_python_flow(
 
         # rekuest finds a call again by its key, and failing that by its reference: so the
         # reference names this one call too (a bare alias would answer a call with another's).
-        async def call(entry: ManifestAction, arguments: Dict[str, Any], call_key: str) -> Dict[str, Any] | None:
+        async def call(entry: ManifestAction, arguments: dict[str, Any], call_key: str) -> dict[str, Any] | None:
             return await task.acall_raw(kwargs=arguments, action=actions[entry.alias][1], reference=f"{task.id}:{call_key}", call_key=call_key)
 
         returns = await arun_python_flow(
@@ -221,8 +222,8 @@ def build_run_python_flow_definition(structure_registry: StructureRegistry) -> D
 def python_flow_actifier(
     function: AnyFunction,
     structure_registry: StructureRegistry,
-    config: Optional[RegisterConfig] = None,
-) -> Tuple[DefinitionInput, ImplementationDetails, ActorBuilder]:
+    config: RegisterConfig | None = None,
+) -> tuple[DefinitionInput, ImplementationDetails, ActorBuilder]:
     """Like ``flow_actifier``, for the one-shot ``run_python_flow``."""
     config = config or RegisterConfig()
     implementation_details = derive_implementation_details(function, config, structure_registry)

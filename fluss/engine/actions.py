@@ -9,7 +9,8 @@ cannot be expressed through signature inference.
 """
 
 from functools import partial
-from typing import Any, AsyncGenerator, Dict, Optional, Tuple
+from typing import Any
+from collections.abc import AsyncGenerator
 
 from fluss.api.schema import Flow
 from fluss.fluss import Fluss
@@ -38,11 +39,11 @@ from fluss.engine.engine import arun_flow
 
 async def run_flow(
     flow: str,
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     fluss: Fluss,
     rekuest: Rekuest,
     task: Task,
-) -> AsyncGenerator[Dict[str, Any], None]:
+) -> AsyncGenerator[dict[str, Any], None]:
     """Run Flow
 
     Runs a fluss flow with pre-validated, shrunk argument values keyed by the
@@ -121,8 +122,8 @@ def build_run_flow_definition(
 def flow_actifier(
     function: AnyFunction,
     structure_registry: StructureRegistry,
-    config: Optional[RegisterConfig] = None,
-) -> Tuple[DefinitionInput, ImplementationDetails, ActorBuilder]:
+    config: RegisterConfig | None = None,
+) -> tuple[DefinitionInput, ImplementationDetails, ActorBuilder]:
     """Actifier for ``run_flow``: like ``reactify`` but with the handcrafted
     definition instead of a signature-derived one."""
     config = config or RegisterConfig()

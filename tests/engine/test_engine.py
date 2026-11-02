@@ -3,7 +3,8 @@
 from arkitekt_runtime.actors.build import actor_builder_for
 import asyncio
 import itertools
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any
+from collections.abc import AsyncGenerator
 
 import pytest
 from types import SimpleNamespace
@@ -15,7 +16,7 @@ from fluss.engine.engine import arun_flow
 
 def make_port(
     key: str, kind: str = "INT", nullable: bool = False, typename: str = "ArgPort"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a port dict.
 
     The schema splits ports by direction, so the caller says which side this is:
@@ -28,11 +29,11 @@ def make_port(
 def make_node(
     id: str,
     kind: str,
-    ins: List[List[Dict[str, Any]]],
-    outs: List[List[Dict[str, Any]]],
-    globals_map: Optional[Dict[str, str]] = None,
+    ins: list[list[dict[str, Any]]],
+    outs: list[list[dict[str, Any]]],
+    globals_map: dict[str, str] | None = None,
     **extra: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a graph node dict."""
     return {
         "id": id,
@@ -51,16 +52,16 @@ def make_node(
 
 
 def _as(
-    streams: List[List[Dict[str, Any]]], typename: str
-) -> List[List[Dict[str, Any]]]:
+    streams: list[list[dict[str, Any]]], typename: str
+) -> list[list[dict[str, Any]]]:
     """Stamp every port in a node's streams with its direction's typename."""
     return [[{**port, "__typename": typename} for port in stream] for stream in streams]
 
 
 def make_flow(
     action_kind: str = "FUNCTION",
-    globals_map: Optional[Dict[str, str]] = None,
-    graph_globals: Optional[List[Dict[str, Any]]] = None,
+    globals_map: dict[str, str] | None = None,
+    graph_globals: list[dict[str, Any]] | None = None,
 ) -> Flow:
     """Build a minimal flow: ArgNode(x) -> rekuest node -> ReturnNode(out)."""
     return Flow.model_validate(
@@ -130,9 +131,9 @@ class MockContract:
 
     def __init__(
         self,
-        call_result: Optional[Dict[str, Any]] = None,
-        iterate_results: Optional[List[Dict[str, Any]]] = None,
-        error: Optional[Exception] = None,
+        call_result: dict[str, Any] | None = None,
+        iterate_results: list[dict[str, Any]] | None = None,
+        error: Exception | None = None,
         hang: bool = False,
     ) -> None:
         """Configure the canned behaviour for acall_raw/aiterate_raw."""
@@ -140,7 +141,7 @@ class MockContract:
         self.iterate_results = iterate_results
         self.error = error
         self.hang = hang
-        self.calls: List[Dict[str, Any]] = []
+        self.calls: list[dict[str, Any]] = []
         self.entered = False
         self.exited = False
 
@@ -168,11 +169,11 @@ class MockContract:
 
     async def acall_raw(
         self,
-        kwargs: Dict[str, Any],
-        reference: Optional[str] = None,
-        assign_timeout: Optional[float] = None,
+        kwargs: dict[str, Any],
+        reference: str | None = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Record the call and return the canned result."""
         self.calls.append(kwargs)
         if self.hang:
@@ -183,11 +184,11 @@ class MockContract:
 
     async def aiterate_raw(
         self,
-        kwargs: Dict[str, Any],
-        reference: Optional[str] = None,
-        assign_timeout: Optional[float] = None,
+        kwargs: dict[str, Any],
+        reference: str | None = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Record the call and yield the canned results."""
         self.calls.append(kwargs)
         if self.error is not None:
@@ -213,9 +214,9 @@ def fake_assignment() -> Assign:
 
 
 @pytest.fixture
-def fluss_calls() -> Dict[str, List[Any]]:
+def fluss_calls() -> dict[str, list[Any]]:
     """Fake fluss and rekuest clients, recording the run-tracking calls made on them."""
-    calls: Dict[str, List[Any]] = _Calls({
+    calls: dict[str, list[Any]] = _Calls({
         "create": [],
         "track": [],
         "snapshot": [],
@@ -246,7 +247,7 @@ def fluss_calls() -> Dict[str, List[Any]]:
     async def aclose_run(**kwargs: Any) -> None:
         calls["close"].append(kwargs)
 
-    async def acollect(references: List[str]) -> None:
+    async def acollect(references: list[str]) -> None:
         calls["collect"].append(references)
 
     # Handed to the engine as its clients; nothing is patched.
@@ -276,11 +277,11 @@ class _Calls(dict):
 
 async def run_to_list(
     flow: Flow,
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     contract: MockContract,
     assignment: Assign,
     clients: Any,  # noqa: ANN401
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Drive arun_flow to completion and collect the yielded dicts."""
     return [
         returns
@@ -298,7 +299,7 @@ async def run_to_list(
 
 @pytest.mark.asyncio
 async def test_function_flow_yields_once(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """A function flow yields a single dict keyed by the return port keys."""
     contract = MockContract(call_result={"return0": 2})
@@ -315,7 +316,7 @@ async def test_function_flow_yields_once(
 
 @pytest.mark.asyncio
 async def test_generator_flow_yields_multiple(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """A generator flow yields one dict per value reaching the return node."""
     contract = MockContract(iterate_results=[{"return0": 1}, {"return0": 2}])
@@ -329,7 +330,7 @@ async def test_generator_flow_yields_multiple(
 
 @pytest.mark.asyncio
 async def test_globals_are_passed_to_nodes(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """Global values from kwargs are merged into the node call kwargs."""
     flow = make_flow(
@@ -348,7 +349,7 @@ async def test_globals_are_passed_to_nodes(
 
 @pytest.mark.asyncio
 async def test_missing_stream_key_raises(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """A missing arg key fails fast and still closes the run."""
     contract = MockContract(call_result={"return0": 2})
@@ -362,7 +363,7 @@ async def test_missing_stream_key_raises(
 
 @pytest.mark.asyncio
 async def test_missing_global_key_raises(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """A missing global key fails fast."""
     flow = make_flow(
@@ -379,7 +380,7 @@ async def test_missing_global_key_raises(
 
 @pytest.mark.asyncio
 async def test_node_error_propagates(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """An exception inside a node call propagates out of the engine."""
     contract = MockContract(error=RuntimeError("boom"))
@@ -393,7 +394,7 @@ async def test_node_error_propagates(
 
 @pytest.mark.asyncio
 async def test_cancellation_cleans_up(
-    fluss_calls: Dict[str, List[Any]], fake_assignment: Assign
+    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
 ) -> None:
     """Cancelling the consumer cancels atom tasks and closes the run."""
     contract = MockContract(hang=True)

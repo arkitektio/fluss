@@ -1,4 +1,4 @@
-from typing import Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
 from fluss.engine.atoms.transformation.buffer_count import BufferCountAtom
 from arkitekt_runtime.messages import Assign
 from fluss.api.schema import (
@@ -30,7 +30,7 @@ from fluss.engine.rpc_contract import RPCContract
 from .base import Atom
 from .transport import AtomTransport
 from arkitekt_runtime.messages import Assign
-from typing import Any, Optional
+from typing import Any
 from fluss.engine.atoms.operations.math import MathAtom, operation_map
 from arkitekt_runtime.actors.base import Actor
 from fluss.engine.reference_counter import ReferenceCounter
@@ -39,8 +39,8 @@ from fluss.engine.reference_counter import ReferenceCounter
 def atomify(
     node: BaseGraphNodeBase,
     transport: AtomTransport,
-    contract: Optional[RPCContract],
-    globals: Dict[str, Any],
+    contract: RPCContract | None,
+    globals: dict[str, Any],
     assignment: Assign,
     reference_counter: ReferenceCounter,
     actor: Actor = None,

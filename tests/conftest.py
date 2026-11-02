@@ -1,4 +1,4 @@
-from typing import Generator
+from collections.abc import Generator
 import pytest
 from dokker import testing, Deployment
 from dokker.log_watcher import LogWatcher

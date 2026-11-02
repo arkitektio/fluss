@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import (
     CompleteOutEvent,
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChunkAtom(CombinationAtom):
-    complete: List[bool] = [False, False]
+    complete: list[bool] = [False, False]
 
     async def run(self):
         iterations = self.set_values.get("iterations", 1)

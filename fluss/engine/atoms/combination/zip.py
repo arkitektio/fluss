@@ -1,5 +1,4 @@
 import asyncio
-from typing import List, Optional, Deque
 from collections import deque
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import EventType, NextInEvent,  CompleteInEvent, ErrorOutEvent, CompleteOutEvent, NextOutEvent
@@ -12,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 class ZipAtom(CombinationAtom):
-    state: List[Optional[NextInEvent]] = Field(default_factory=lambda: [None, None])
-    complete: List[Optional[CompleteInEvent]] = Field(default_factory=lambda: [None, None])
-    buffer: List[Deque[NextInEvent]] = Field(
+    state: list[NextInEvent | None] = Field(default_factory=lambda: [None, None])
+    complete: list[CompleteInEvent | None] = Field(default_factory=lambda: [None, None])
+    buffer: list[deque[NextInEvent]] = Field(
         default_factory=lambda: [deque(), deque()]
     )  # Buffers for each input
 

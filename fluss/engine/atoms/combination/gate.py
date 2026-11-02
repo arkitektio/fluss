@@ -1,16 +1,14 @@
 import asyncio
-from typing import  Optional
 from fluss.engine.atoms.helpers import index_for_handle
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import EventType, OutEvent, NextInEvent, ErrorInEvent, ErrorOutEvent, NextOutEvent, CompleteOutEvent
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class GateAtom(CombinationAtom):
-    buffer: Optional[asyncio.Queue[NextInEvent]] = None
+    buffer: asyncio.Queue[NextInEvent] | None = None
 
     async def run(self):
         self.buffer = asyncio.Queue()

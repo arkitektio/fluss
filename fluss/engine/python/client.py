@@ -7,7 +7,8 @@ storing it with ``fluss.avalidate_python_flow`` (or locally, with
 :func:`fluss_monty.validate_python_flow`).
 """
 
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any
+from collections.abc import Iterable, Mapping, Sequence
 
 from arkitekt_spec.actions import ActionKind, ArgPortInput, DefinitionInput, ReturnPortInput
 from fluss_monty import ManifestAction, PortLike

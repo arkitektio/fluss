@@ -9,7 +9,8 @@ when the engine is driven through the registered ``run_flow`` action).
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
+from collections.abc import AsyncGenerator
 
 from fluss.api.schema import (
     ArgNode,
@@ -53,16 +54,16 @@ DEFAULT_SNAPSHOT_INTERVAL = 40
 
 async def arun_flow(
     flow: Flow,
-    kwargs: Dict[str, Any],
+    kwargs: dict[str, Any],
     *,
     fluss: "Fluss",
     rekuest: "Rekuest",
-    task: Optional["Task"] = None,
-    assignment: Optional[Assign] = None,
+    task: "Task | None" = None,
+    assignment: Assign | None = None,
     contractor: NodeContractor = arkicontractor,
     snapshot_interval: int = DEFAULT_SNAPSHOT_INTERVAL,
-    actor: Optional[Actor] = None,
-) -> AsyncGenerator[Dict[str, Any], None]:
+    actor: Actor | None = None,
+) -> AsyncGenerator[dict[str, Any], None]:
     """Run a flow and yield its return dicts as they are produced.
 
     ``kwargs`` carries the flow's arg-node stream values and global values,
@@ -89,9 +90,9 @@ async def arun_flow(
     # Runs track the state of the flow interactively
 
     t = 0
-    state: Dict[ID, TrackMutationTrack] = {}
-    tasks: List[asyncio.Task[None]] = []
-    contracts: Dict[str, RPCContract] = {}
+    state: dict[ID, TrackMutationTrack] = {}
+    tasks: list[asyncio.Task[None]] = []
+    contracts: dict[str, RPCContract] = {}
 
     try:
         rekuest_nodes = [
@@ -128,8 +129,8 @@ async def arun_flow(
         for i in stream:
             stream_keys.append(i.key)
 
-        globalMap: Dict[str, Dict[str, Any]] = {}
-        streamMap: Dict[str, Any] = {}
+        globalMap: dict[str, dict[str, Any]] = {}
+        streamMap: dict[str, Any] = {}
 
         # We need to map the global keys to the actual values from the kwargs
         # Each node has a globals_map that maps the port key to the global key
@@ -340,7 +341,7 @@ async def arun_flow(
             await asyncio.wait_for(
                 asyncio.gather(*tasks, return_exceptions=True), timeout=4
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
 
         await rekuest.acollect(list(reference_counter.references))

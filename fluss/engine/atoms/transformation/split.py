@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import (
     EventType,
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class SplitAtom(CombinationAtom):
-    complete: List[bool] = [False, False]
+    complete: list[bool] = [False, False]
 
     async def run(self):
         try:

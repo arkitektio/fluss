@@ -1,5 +1,6 @@
 from types import TracebackType
-from typing import Any, AsyncGenerator, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+from collections.abc import AsyncGenerator
 from koil.composition.base import KoiledModel
 from pydantic import PrivateAttr
 from rekuest.api.schema import Action
@@ -21,17 +22,17 @@ class RPCContract(Protocol):
 
     async def acall_raw(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         reference: str | None = None,
-        assign_timeout: Optional[float] = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
     ): ...
 
     async def aiterate_raw(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         reference: str | None = None,
-        assign_timeout: Optional[float] = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
     ): ...
 
@@ -108,9 +109,9 @@ class DirectContract(KoiledModel):
 
     async def acall_raw(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         reference: str | None = None,
-        assign_timeout: Optional[float] = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
     ):
         """Call the function or generator in a blocking or non-blocking way.
@@ -127,9 +128,9 @@ class DirectContract(KoiledModel):
 
     def aiterate_raw(
         self,
-        kwargs: Dict[str, Any],
+        kwargs: dict[str, Any],
         reference: str | None = None,
-        assign_timeout: Optional[float] = None,
+        assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
     ) -> AsyncGenerator[Any, None]:
         """Call the function or generator in a blocking or non-blocking way.

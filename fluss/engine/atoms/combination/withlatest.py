@@ -1,5 +1,4 @@
 import asyncio
-from typing import List, Optional
 from fluss.engine.atoms.helpers import index_for_handle
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import (
@@ -23,7 +22,7 @@ class WithLatestAtom(CombinationAtom):
     completing completes the atom.
     """
 
-    state: List[Optional[NextInEvent]] = Field(default_factory=lambda: [None, None])
+    state: list[NextInEvent | None] = Field(default_factory=lambda: [None, None])
 
     async def run(self):
         self.state = [None for _ in self.node.ins]

@@ -4,7 +4,8 @@ No server: the rath is a fake returning canned data.
 """
 
 from types import SimpleNamespace
-from typing import Any, AsyncIterator, Optional
+from typing import Any
+from collections.abc import AsyncIterator
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -48,7 +49,7 @@ class GetFlow(BaseModel):
 
     class Arguments(BaseModel):
         id: str
-        note: Optional[str] = None
+        note: str | None = None
 
     class Meta:
         document = "query GetFlow($id: ID!) { flow(id: $id) { id graph { id } } }"

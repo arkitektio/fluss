@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.operations.base import OperationAtom
 from fluss.engine.events import EventType, NextOutEvent, ErrorOutEvent, CompleteOutEvent
 from fluss.api.schema import ReactiveImplementation
@@ -21,7 +20,7 @@ operation_map = {
 
 
 class MathAtom(OperationAtom):
-    complete: List[bool] = [False, False]
+    complete: list[bool] = [False, False]
 
     async def run(self):
         operation = operation_map.get(self.node.implementation)

@@ -197,7 +197,7 @@ class FakeFluss:
     async def acreate_python_run(self, flow: str, task_id: str) -> Any:  # noqa: ANN401
         import datetime
 
-        return SimpleNamespace(id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.timezone.utc))
+        return SimpleNamespace(id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.UTC))
 
     async def aclose_python_run(self, run: str, status: Any) -> None:  # noqa: ANN401
         self.closed.append(status.value)

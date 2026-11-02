@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.transformation.base import TransformationAtom
 from fluss.engine.events import EventType, InEvent, NextOutEvent, ErrorOutEvent, CompleteOutEvent
 import logging
@@ -18,7 +17,7 @@ class AllAtom(TransformationAtom):
             raise ValueError("Atom expects all values to be not None")
 
         if check_list_length:
-            if not all([len(v) != 0 for v in values if isinstance(v, List)]):
+            if not all([len(v) != 0 for v in values if isinstance(v, list)]):
                 raise ValueError("Atom expects all lists to be not empty")
 
     async def run(self):

@@ -1,6 +1,6 @@
 import asyncio
 
-from typing import Any, List, Optional
+from typing import Any
 
 from pydantic import BaseModel
 from fluss.engine.atoms.helpers import node_to_reference
@@ -28,7 +28,7 @@ class ArkitektMapAtom(MapAtom, RekuestAtom):
     node: RekuestMapActionNode
     contract: RPCContract
 
-    async def map(self, event: InEvent) -> Optional[List[Any]]:
+    async def map(self, event: InEvent) -> list[Any] | None:
         kwargs = self.set_values
         assert event.value is not None, "Event value should not be None"
 
@@ -57,7 +57,7 @@ class ArkitektMergeMapAtom(MergeMapAtom, RekuestAtom):
     node: RekuestMapActionNode
     contract: RPCContract
 
-    async def merge_map(self, event: InEvent) -> Optional[List[Any]]:
+    async def merge_map(self, event: InEvent) -> list[Any] | None:
         kwargs = self.set_values
 
         stream_one = self.node.ins[0]
@@ -82,7 +82,7 @@ class ArkitektAsCompletedAtom(AsCompletedAtom, RekuestAtom):
     node: RekuestMapActionNode
     contract: RPCContract
 
-    async def map(self, event: InEvent) -> Optional[List[Any]]:
+    async def map(self, event: InEvent) -> list[Any] | None:
         kwargs = self.set_values
 
         stream_one = self.node.ins[0]
@@ -109,7 +109,7 @@ class ArkitektOrderedAtom(OrderedAtom, RekuestAtom):
     node: RekuestMapActionNode
     contract: RPCContract
 
-    async def map(self, event: InEvent) -> Optional[List[Any]]:
+    async def map(self, event: InEvent) -> list[Any] | None:
         kwargs = self.set_values
 
         stream_one = self.node.ins[0]

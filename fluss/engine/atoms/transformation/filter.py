@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.events import (
     CompleteOutEvent,
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class FilterAtom(CombinationAtom):
     # TODO: Rename to match as it maps to a specifc type
-    complete: List[bool] = [False, False]
+    complete: list[bool] = [False, False]
 
     async def run(self):
         try:

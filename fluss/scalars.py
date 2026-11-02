@@ -1,6 +1,6 @@
 """Custom scalars for GraphQL queries and exceptions."""
 
-from typing import Any, Tuple, Union
+from typing import Any
 from graphql import (
     DocumentNode,
     FieldNode,
@@ -49,7 +49,7 @@ class NodeException(str):
         return f"NodeException({str(self)})"
 
 
-EventValue = Tuple[Any, ...]
+EventValue = tuple[Any, ...]
 
 
 def parse_or_raise(v: str) -> DocumentNode:
@@ -101,7 +101,7 @@ class SearchQuery(str):
         return core_schema.no_info_after_validator_function(cls.validate, handler(str))
 
     @classmethod
-    def validate(cls, v: Union[str, DocumentNode, Any]) -> str:
+    def validate(cls, v: str | DocumentNode | Any) -> str:
         """Validate the search query"""
         if not isinstance(v, str) and not isinstance(v, DocumentNode):
             raise TypeError(

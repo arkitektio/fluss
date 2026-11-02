@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.transformation.base import TransformationAtom
 from fluss.engine.events import EventType, OutEvent, InEvent, NextInEvent, ErrorOutEvent, CompleteOutEvent, NextOutEvent
 import logging
@@ -10,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class BufferCompleteAtom(TransformationAtom):
-    buffer: List[NextInEvent] = Field(default_factory=list)
+    buffer: list[NextInEvent] = Field(default_factory=list)
 
     async def run(self):
         try:

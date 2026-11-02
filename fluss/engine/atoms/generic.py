@@ -12,7 +12,6 @@ from fluss.engine.events import (
 from fluss.engine.atoms.base import Atom
 import logging
 from pydantic import Field
-from typing import Dict, List
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -218,8 +217,8 @@ class MergeMapAtom(Atom):
 
 
 class OrderedAtom(Atom):
-    runningEvents: Dict[int, asyncio.Task] = Field(default_factory=dict)
-    publish_queue: List[int] = Field(default_factory=list)
+    runningEvents: dict[int, asyncio.Task] = Field(default_factory=dict)
+    publish_queue: list[int] = Field(default_factory=list)
 
     async def map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")
@@ -330,7 +329,7 @@ class OrderedAtom(Atom):
 
 
 class AsCompletedAtom(Atom):
-    runningEvents: Dict[int, asyncio.Task] = Field(default_factory=dict)
+    runningEvents: dict[int, asyncio.Task] = Field(default_factory=dict)
 
     async def map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")

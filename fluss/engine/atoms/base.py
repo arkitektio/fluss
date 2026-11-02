@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable, Callable, Optional
+from collections.abc import Awaitable, Callable
 from pydantic import BaseModel, Field
 from fluss.api.schema import BaseGraphNodeBase
 from fluss.engine.atoms.errors import AtomQueueFull
@@ -10,7 +10,7 @@ from fluss.engine.atoms.transport import AtomTransport
 from fluss.engine.reference_counter import ReferenceCounter
 from arkitekt_runtime.actors.base import Actor
 from pydantic import BaseModel, ConfigDict
-from typing import Dict, Any
+from typing import Any
 from fluss.engine.events import InEvent, OutEvent, EventType, ErrorOutEvent
 
 logger = logging.getLogger(__name__)
@@ -22,9 +22,9 @@ class Atom(BaseModel):
     node: BaseGraphNodeBase
     reference_counter: ReferenceCounter
     transport: AtomTransport
-    globals: Dict[str, Any] = Field(default_factory=dict)
-    hold_references: Dict[str, Any] = Field(default_factory=dict)
-    _private_queue: Optional[asyncio.Queue[InEvent]] = None
+    globals: dict[str, Any] = Field(default_factory=dict)
+    hold_references: dict[str, Any] = Field(default_factory=dict)
+    _private_queue: asyncio.Queue[InEvent] | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     async def run(self) -> None:
@@ -81,7 +81,7 @@ class Atom(BaseModel):
             )
 
     @property
-    def set_values(self) -> Dict[str, Any]:
+    def set_values(self) -> dict[str, Any]:
         defaults = self.node.constants_map or {}
         my_globals = self.globals or {}
         return {**defaults, **my_globals}

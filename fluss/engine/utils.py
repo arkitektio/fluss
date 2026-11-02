@@ -1,6 +1,5 @@
 """Graph helpers for routing events along flow edges."""
 
-from typing import List
 from fluss.api.schema import Graph
 from .events import (
     NextInEvent,
@@ -15,7 +14,7 @@ from .events import (
 from .errors import FlowLogicError
 
 
-def connected_events(graph: Graph, event: OutEvent, t: int) -> List[InEvent]:
+def connected_events(graph: Graph, event: OutEvent, t: int) -> list[InEvent]:
     """Translate an out event into the in events of all connected nodes."""
     events = []
 

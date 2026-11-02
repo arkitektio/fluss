@@ -1,5 +1,4 @@
 import asyncio
-from typing import List
 from fluss.engine.atoms.transformation.base import TransformationAtom
 from fluss.engine.events import (
     ErrorOutEvent,
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class BufferCountAtom(TransformationAtom):
-    buffer: List[InEvent] = Field(default_factory=list)
+    buffer: list[InEvent] = Field(default_factory=list)
 
     async def run(self):
         try:

@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Union, Any, Optional
+from typing import Literal, Any
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from enum import Enum
 
@@ -9,7 +9,7 @@ class EventType(str, Enum):
     COMPLETE = "COMPLETE"
 
 
-Returns = Tuple[Any, ...]
+Returns = tuple[Any, ...]
 
 
 class BaseInEvent(BaseModel):
@@ -94,7 +94,7 @@ class BaseOutEvent(BaseModel):
     handle: str = Field(..., description="The handle of the port")
     """ The handle of the port that emitted the event"""
 
-    caused_by: Optional[Tuple[int, ...]]
+    caused_by: tuple[int, ...] | None
     """ The attached value of the event"""
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -120,14 +120,14 @@ class BaseOutEvent(BaseModel):
 
 
 class NextOutEvent(BaseOutEvent):
-    value: Optional[Returns] = Field(
+    value: Returns | None = Field(
         default=None, description="The value of the event (null, exception or any"
     )
     type: Literal[EventType.NEXT] = Field(
         default=EventType.NEXT, description="The event type is always COMPLETE"
     )
 
-    def to_state(self) -> dict[str, Union[str, Returns]]:
+    def to_state(self) -> dict[str, str | Returns]:
         return {
             "source": self.source,
             "handle": self.handle,

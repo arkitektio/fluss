@@ -34,7 +34,7 @@ def _next(handle: str, value: tuple, t: int) -> NextInEvent:
 async def _nothing_within(transport: MockTransport, timeout: float = 0.2) -> bool:
     try:
         await transport.get(timeout=timeout)
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return True
     return False
 
