@@ -38,7 +38,6 @@ dev-dependencies =  [
     "python-semantic-release>=9.21.0",
     "autoflake>=1.7.7,<2",
     "aiohttp>=3.8.3,<4",
-    "black>=23.1.0,<24",
     "pytest-aiohttp>=1.0.4,<2",
     "ruff>=0.0.254",
     "turms>=3.0",
