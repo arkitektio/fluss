@@ -229,6 +229,7 @@ class CustomAssignWidgetInput(BaseModel):
     follow_value: str | None = Field(validation_alias=AliasChoices('follow_value', 'followValue'), serialization_alias='followValue', default=None, description='Port path of another port whose value this widget follows and mirrors.')
     component: str = Field(description='The catalog component to render. The port value is in scope as the reserved root `value`.')
     props: tuple['ComponentPropInput', ...] | None = Field(default=None, description='Props of the component. value_paths may only reference `value` and `dependencies`; agent calls are not allowed.')
+    children: tuple['ComponentNodeInput', ...] | None = Field(default=None, description="The component's children: a tree of blok nodes under the same rules as its props. Left out of the definition's hash when empty, so a widget without any keeps the hash it has.")
     dependencies: Annotated[tuple[str, ...] | None, GraphQLDefault('[]')] = Field(default=None, description='The other ports (port paths, `..` traverses children) whose values the props may reference.')
     'The other ports (port paths, `..` traverses children) whose values the props may reference.\nDefault: []'
     fallback: 'AssignWidgetInput | None' = Field(default=None, description='Widget to render when the UI has no such component in its catalog.')
@@ -379,6 +380,14 @@ class ClosePythonRunInput(BaseModel):
     run: ID
     status: Annotated[PythonRunStatus | None, GraphQLDefault('COMPLETED')] = None
     'Default: COMPLETED'
+    model_config = ConfigDict(frozen=True, extra='forbid')
+
+class ComponentNodeInput(BaseModel):
+    """A node of a blok tree (blok language v2)."""
+    id: str = Field(description="An explicit id, or one derived from the node's place (`Card[0]/Button[1]`); unique in the tree.")
+    component: str = Field(description='The catalog component (`Button`) or language component (`if`, `foreach`, `suspense`).')
+    props: tuple['ComponentPropInput', ...] | None = Field(default=None, description='The collection of static values, state pointers, or action endpoints assigned to this component.')
+    children: tuple['ComponentNodeInput', ...] | None = Field(default=None, description='Its children, in order.')
     model_config = ConfigDict(frozen=True, extra='forbid')
 
 class ComponentPropInput(BaseModel):
@@ -3734,6 +3743,7 @@ Returns:
         return self.execute(WorkspacesQuery, variables).workspaces
 ActionArgumentInput.model_rebuild()
 ArgPortInput.model_rebuild()
+ComponentNodeInput.model_rebuild()
 ComponentPropInput.model_rebuild()
 CreatePythonFlowInput.model_rebuild()
 CreateWorkspaceInput.model_rebuild()
