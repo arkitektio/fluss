@@ -30,8 +30,8 @@ def ret(key: str, kind: PortKind, **extra: Any) -> ReturnPortInput:
 IMAGE = "@mikro/image"
 
 
-def action(hash: str, args: list, returns: list, kind: str = "FUNCTION") -> SimpleNamespace:
-    return SimpleNamespace(hash=hash, kind=kind, args=args, returns=returns)
+def action(hash: str, args: list, returns: list, kind: str = "FUNCTION", stateful: bool = False) -> SimpleNamespace:
+    return SimpleNamespace(hash=hash, kind=kind, args=args, returns=returns, stateful=stateful, name=hash)
 
 
 SEGMENT = ManifestAction(
@@ -270,7 +270,7 @@ async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
 async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool) -> None:
     from fluss.engine.python.client import adeploy_python_flow
 
-    class Deployer:
+    class Deployer(FakeRekuest):
         async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict:  # noqa: ANN401
             self.kwargs = kwargs
             return kwargs
@@ -285,11 +285,50 @@ async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool)
     assert [(p.key, p.kind, p.identifier) for p in definition.args] == [("image", "STRUCTURE", IMAGE)]
     assert [(p.key, p.kind, p.identifier) for p in definition.returns] == [("return0", "STRUCTURE", IMAGE)]
 
+    assert sent["dependencies"] == (), "a stateless step runs wherever it is offered"
+
     from fluss.api.schema import PythonFlowStatus
 
     draft = flow.model_copy(update={"status": PythonFlowStatus.DRAFT})
     with pytest.raises(ValueError, match="PUBLISHED"):
         await adeploy_python_flow(draft, rekuest, runner="impl-7")  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_called_through_it(pool) -> None:
+    """Whose state a step reads or changes is chosen when the run starts, never per call."""
+    from fluss.engine.python.actions import MontyPool, run_python_flow
+    from fluss.engine.python.client import adeploy_python_flow
+
+    stage = action("h-seg", SEGMENT.action.args, SEGMENT.action.returns, stateful=True)
+
+    class Rekuest:
+        async def afind(self, hash: str) -> Any:  # noqa: ANN401
+            return stage
+
+        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict:  # noqa: ANN401
+            self.kwargs = kwargs
+            return kwargs
+
+    class Task(FakeTask):
+        async def acall_dependency_raw(self, dependency: str, method: str, kwargs: dict, *, reference: str, call_key: str) -> dict:
+            self.through = (dependency, method, call_key)
+            return {"return0": f"{kwargs['image']}-mask"}
+
+    flow, rekuest, task, monty = await _stored(pool, LOGGING), Rekuest(), Task(), MontyPool(max_processes=1)
+    await adeploy_python_flow(flow, rekuest, runner="impl-7")  # type: ignore[arg-type]
+    (step,) = rekuest.kwargs["dependencies"]
+    assert (step.key, step.auto_resolvable, step.optional) == ("segment", True, False)
+    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [("step", "h-seg")]
+
+    try:
+        returns = await run_python_flow("1", {"image": "img"}, FakeFluss(flow), rekuest, task, pool=monty)  # type: ignore[arg-type]
+    finally:
+        await monty.aclose()
+    assert returns == {"return0": "img-mask"}
+    dependency, method, call_key = task.through
+    assert (dependency, method) == ("segment", "step") and call_key.startswith("segment:")
+    assert task.keys == [], "it is not also called by its action"
 
 
 # --- what the server is sent ---------------------------------------------------------------

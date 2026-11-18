@@ -10,7 +10,7 @@ storing it with ``fluss.avalidate_python_flow`` (or locally, with
 from typing import Any
 from collections.abc import Iterable, Mapping, Sequence
 
-from arkitekt_spec.actions import ActionKind, ArgPortInput, DefinitionInput, ReturnPortInput
+from arkitekt_spec.actions import ActionDemandInput, ActionDependencyInput, ActionKind, AgentDependencyInput, ArgPortInput, DefinitionInput, ReturnPortInput
 from fluss_monty import ManifestAction, PortLike
 from rath.scalars import IDCoercible
 from rekuest.api.schema import Implementation
@@ -111,8 +111,43 @@ def python_flow_definition(flow: PythonFlow) -> DefinitionInput:
     )
 
 
+#: The slot a stateful step is called through, in the dependency that names it.
+STEP_METHOD = "step"
+
+
+async def stateful_steps(flow: PythonFlow, rekuest: Rekuest) -> tuple[AgentDependencyInput, ...]:
+    """What a deployed flow declares of its stateful steps: one dependency each, keyed by its alias.
+
+    A stateful action reads or changes the state of the agent that runs it, so rekuest does
+    not pick that agent. Whoever starts the flow binds each such step to one, as for any
+    dependency, and the run calls the step through that binding. The step is named by its
+    hash, so the one agent that implements it binds without being asked for; with several,
+    the run is refused until one is chosen. Stateless steps are not declared: they run
+    wherever the action is offered.
+    """
+    steps: list[AgentDependencyInput] = []
+    for entry in flow.manifest:
+        action = await rekuest.afind(hash=entry.action_hash)
+        if not action.stateful:
+            continue
+        steps.append(
+            AgentDependencyInput(
+                key=entry.alias,
+                name=action.name,
+                description=f"The agent that runs {action.name}. The step is stateful, so the run names one.",
+                auto_resolvable=True,
+                optional=False,
+                action_dependencies=(ActionDependencyInput(key=STEP_METHOD, demand=ActionDemandInput(hash=entry.action_hash)),),
+            )
+        )
+    return tuple(steps)
+
+
 async def adeploy_python_flow(flow: PythonFlow, rekuest: Rekuest, runner: IDCoercible) -> Implementation:
     """Make a PUBLISHED version callable like any action, on the agent of ``runner``.
+
+    Its stateful steps become dependencies of that action (``stateful_steps``): starting the
+    flow binds each to an agent.
 
     ``runner`` is a ``run_python_flow`` implementation. The action rekuest makes of it takes the
     flow's own arguments and returns its own values: rekuest binds the version, packs the
@@ -126,4 +161,5 @@ async def adeploy_python_flow(flow: PythonFlow, rekuest: Rekuest, runner: IDCoer
         interface=f"pythonflow:{flow.id}",
         definition=python_flow_definition(flow),
         config={"bound": {"flow": str(flow.id)}, "args_key": "kwargs", "returns_key": "returns"},
+        dependencies=await stateful_steps(flow, rekuest),
     )

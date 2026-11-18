@@ -20,6 +20,7 @@ from pydantic import PrivateAttr
 from rath.scalars import ID
 from arkitekt_runtime.actors.functional import FUNC, FunctionalActor
 from arkitekt_runtime.actors.types import ActorBuilder
+from arkitekt_runtime.postmans.errors import AssignException
 from arkitekt_runtime.task import Task
 from arkitekt_spec.actions import ActionKind, ArgPortInput, DefinitionInput, PortKind, ReturnPortInput
 from arkitekt_spec.declare.actors.actify import derive_implementation_details
@@ -32,6 +33,7 @@ from rekuest.client.client import Rekuest
 
 from fluss.api.schema import PythonFlow, PythonFlowStatus, PythonRunStatus
 from fluss_monty import ManifestAction, PythonFlowError, PythonFlowLimits, arun_python_flow
+from fluss.engine.python.client import STEP_METHOD
 from fluss.fluss import Fluss
 
 
@@ -147,7 +149,20 @@ async def run_python_flow(
         # rekuest finds a call again by its key, and failing that by its reference: so the
         # reference names this one call too (a bare alias would answer a call with another's).
         async def call(entry: ManifestAction, arguments: dict[str, Any], call_key: str) -> dict[str, Any] | None:
-            return await task.acall_raw(kwargs=arguments, action=actions[entry.alias][1], reference=f"{task.id}:{call_key}", call_key=call_key)
+            action, reference = actions[entry.alias][1], f"{task.id}:{call_key}"
+            if not action.stateful:
+                return await task.acall_raw(kwargs=arguments, action=action, reference=reference, call_key=call_key)
+            # A stateful step runs on the agent this run bound it to when it was started: the
+            # deployed flow declares the step as a dependency (``stateful_steps``).
+            try:
+                return await task.acall_dependency_raw(entry.alias, STEP_METHOD, arguments, reference=reference, call_key=call_key)
+            except AssignException as refused:
+                if "not found in parent task dependencies" not in str(refused):
+                    raise
+                raise PythonFlowError(
+                    f"{entry.alias} is stateful, so it runs on an agent the run names, and this run named none. "
+                    "Deploy the flow and run the action that makes of it: starting that one binds the step to an agent."
+                ) from refused
 
         returns = await arun_python_flow(
             resolved.source,
