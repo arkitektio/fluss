@@ -10,7 +10,7 @@ storing it with ``fluss.avalidate_python_flow`` (or locally, with
 from typing import Any
 from collections.abc import Iterable, Mapping, Sequence
 
-from arkitekt_spec.actions import ActionDemandInput, ActionDependencyInput, ActionKind, AgentDependencyInput, ArgPortInput, DefinitionInput, ReturnPortInput
+from arkitekt_spec.actions import ActionKind, AgentDependencyInput, ArgPortInput, DefinitionInput, ReturnPortInput
 from fluss_monty import ManifestAction, PortLike
 from rath.scalars import IDCoercible
 from rekuest.api.schema import Implementation
@@ -18,6 +18,7 @@ from rekuest.client.client import Rekuest
 
 from fluss.api import schema
 from fluss.api.schema import Effects, ManifestEntryInput, PythonFlow, PythonFlowStatus
+from fluss.engine.steps import step_dependency
 from fluss.fluss import Fluss
 
 
@@ -111,10 +112,6 @@ def python_flow_definition(flow: PythonFlow) -> DefinitionInput:
     )
 
 
-#: The slot a stateful step is called through, in the dependency that names it.
-STEP_METHOD = "step"
-
-
 async def stateful_steps(flow: PythonFlow, rekuest: Rekuest) -> tuple[AgentDependencyInput, ...]:
     """What a deployed flow declares of its stateful steps: one dependency each, keyed by its alias.
 
@@ -130,16 +127,7 @@ async def stateful_steps(flow: PythonFlow, rekuest: Rekuest) -> tuple[AgentDepen
         action = await rekuest.afind(hash=entry.action_hash)
         if not action.stateful:
             continue
-        steps.append(
-            AgentDependencyInput(
-                key=entry.alias,
-                name=action.name,
-                description=f"The agent that runs {action.name}. The step is stateful, so the run names one.",
-                auto_resolvable=True,
-                optional=False,
-                action_dependencies=(ActionDependencyInput(key=STEP_METHOD, demand=ActionDemandInput(hash=entry.action_hash)),),
-            )
-        )
+        steps.append(step_dependency(entry.alias, action.name, entry.action_hash))
     return tuple(steps)
 
 

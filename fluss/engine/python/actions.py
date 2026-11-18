@@ -33,7 +33,7 @@ from rekuest.client.client import Rekuest
 
 from fluss.api.schema import PythonFlow, PythonFlowStatus, PythonRunStatus
 from fluss_monty import ManifestAction, PythonFlowError, PythonFlowLimits, arun_python_flow
-from fluss.engine.python.client import STEP_METHOD
+from fluss.engine.steps import STEP_METHOD
 from fluss.fluss import Fluss
 
 

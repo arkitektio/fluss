@@ -24,10 +24,10 @@ dependencies = [
 # needs both present. Plain `fluss` does not:
 # its own rekuest integration sits behind a try/except in __init__, so the
 # dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=15", "arkitekt-runtime>=10.4"]
+engine = ["rekuest>=15", "arkitekt-runtime>=10.5"]
 # `fluss.engine.python` runs Python flows on rekuest; checking and running a source is
 # fluss-monty's, which the fluss server validates with too.
-python = ["rekuest>=15", "arkitekt-runtime>=10.4", "fluss-monty>=1"]
+python = ["rekuest>=15", "arkitekt-runtime>=10.5", "fluss-monty>=1"]
 
 
 [tool.uv]

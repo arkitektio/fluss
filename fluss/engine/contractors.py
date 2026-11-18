@@ -4,7 +4,7 @@ from fluss.api.schema import (
     RekuestActionNodeBase,
 )
 from rekuest.client.client import Rekuest
-from fluss.engine.errors import FlowLogicError
+from fluss.engine.steps import step_key
 from arkitekt_runtime.task import Task
 
 
@@ -30,16 +30,11 @@ async def arkicontractor(
     """
 
     action = await rekuest.afind(hash=node.hash)
-    if action.stateful:
-        # A stateful action reads or changes the state of the agent that runs it, so rekuest
-        # runs it only on a named agent. A graph flow has nowhere to name one yet (a Python
-        # flow declares such steps as dependencies when it is deployed), so the run is
-        # stopped here, before any step ran, and not at this step in its middle.
-        raise FlowLogicError(
-            f"{action.name} is stateful: it runs on an agent the run names, and a graph flow cannot name one yet. "
-            "Call it from a Python flow, which binds the step to an agent when it is started."
-        )
+    # A stateful action runs on the agent the run bound it to when it was started: the
+    # deployed flow declares the node as a dependency (``flow_stateful_steps``), and its
+    # calls go through that binding instead of naming the action.
+    dependency = step_key(node.id) if action.stateful and task is not None else None  # type: ignore[attr-defined]
 
     return DirectContract(
-        action=action, reference=node.id, rekuest=rekuest, task=task
+        action=action, reference=node.id, rekuest=rekuest, task=task, dependency=dependency  # type: ignore[attr-defined]
     )

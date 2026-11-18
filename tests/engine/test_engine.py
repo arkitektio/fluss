@@ -445,3 +445,46 @@ async def test_run_flow_action_is_registered() -> None:
     served = actor_builder_for(snapshot, "run_flow")
     assert served.builder.keywords["structure_registry"] is snapshot.structure_registry
     assert builder.builder.keywords["structure_registry"] is registry.structure_registry
+
+
+# --- a deployed flow, and its stateful steps ----------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_a_flow_deploys_as_a_generator_and_binds_its_stateful_nodes() -> None:
+    """Deployed, a flow is an action of its own ports that declares each stateful node as a
+    dependency; run, that node is called through the binding and never by its action."""
+    from rekuest.api.schema import Action
+
+    from fluss.engine.contractors import arkicontractor
+    from fluss.engine.deploy import adeploy_flow
+
+    class Rekuest:
+        async def afind(self, hash: str) -> Any:  # noqa: ANN401
+            return Action.model_construct(hash=hash, name="Move stage", stateful=True)
+
+        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+            self.sent = kwargs
+            return kwargs
+
+    class Task:
+        async def acall_dependency_raw(self, dependency: str, method: str, kwargs: dict[str, Any], *, reference: str | None, call_key: str) -> dict[str, Any]:
+            self.through = (dependency, method, call_key)
+            return {"return0": kwargs["x"]}
+
+    flow, rekuest, task = make_flow(), Rekuest(), Task()
+    await adeploy_flow(flow, rekuest, runner="impl-3")  # type: ignore[arg-type]
+    sent = rekuest.sent
+    assert (sent["lower"], sent["interface"]) == ("impl-3", "flow:flow-1")
+    assert sent["config"] == {"bound": {"flow": "flow-1"}, "args_key": "kwargs", "returns_key": "returns"}
+    definition = sent["definition"]
+    assert definition.kind == "GENERATOR", "as run_flow is: the server refuses a wrapper of another kind"
+    assert ([p.key for p in definition.args], [p.key for p in definition.returns]) == (["x"], ["out"])
+    (step,) = sent["dependencies"]
+    assert (step.key, step.auto_resolvable, step.optional) == ("step_middle", True, False)
+    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [("step", "h-middle")]
+
+    node = next(n for n in flow.graph.nodes if n.id == "middle")
+    contract = await arkicontractor(node, rekuest, task)  # type: ignore[arg-type]
+    assert await contract.acall_raw({"x": 4}, reference="r") == {"return0": 4}
+    assert task.through == ("step_middle", "step", "middle:1")

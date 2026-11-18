@@ -208,7 +208,7 @@ wheels = [
 
 [[package]]
 name = "arkitekt-runtime"
-version = "10.4.0"
+version = "10.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "arkitekt-spec" },
@@ -217,9 +217,9 @@ dependencies = [
     { name = "koil" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/c2/9fbd3743802e96052a9b513079db08ae83656c8db52b6250dea891e80205/arkitekt_runtime-10.4.0.tar.gz", hash = "sha256:fe457cf58d950c5ccd7e4e7f6fd3b7a51133b3069fbd1560e2b4080cc69b8ed3", size = 141015, upload-time = "2026-11-18T18:04:55.316Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/6f/0bfb5cc5cccd0701b61311567bd6d9d4419b88d93bf9e430a267edaa6d03/arkitekt_runtime-10.5.0.tar.gz", hash = "sha256:ca4a3ee84f317f4989208ba78f28518317d42413b0d6bfc84a825270bfa498bb", size = 141164, upload-time = "2026-11-18T19:46:43.93Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e3/49/416575779adf7d5701aac34b69d84f30a737b29c7f29f805b17b7091dcfa/arkitekt_runtime-10.4.0-py3-none-any.whl", hash = "sha256:eae0eb3e7169c4d151d0237664b93bd1770557ff0ed32afe926215e6a3e25be2", size = 171503, upload-time = "2026-11-18T18:04:54.19Z" },
+    { url = "https://files.pythonhosted.org/packages/df/52/c054c4fc1001622768bae145076dfa0138f87dba046c46edbcb26c43418e/arkitekt_runtime-10.5.0-py3-none-any.whl", hash = "sha256:f5d45789e8a5e579f127d7caa4a95aebb6bb3b5559abd8eb26397348cf629469", size = 171631, upload-time = "2026-11-18T19:46:42.973Z" },
 ]
 
 [[package]]
@@ -529,8 +529,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "arkitekt-runtime", marker = "extra == 'engine'", specifier = ">=10.4" },
-    { name = "arkitekt-runtime", marker = "extra == 'python'", specifier = ">=10.4" },
+    { name = "arkitekt-runtime", marker = "extra == 'engine'", specifier = ">=10.5" },
+    { name = "arkitekt-runtime", marker = "extra == 'python'", specifier = ">=10.5" },
     { name = "arkitekt-spec", specifier = ">=10.1" },
     { name = "fakts", specifier = ">=6.1" },
     { name = "fluss-monty", marker = "extra == 'python'", specifier = ">=1" },
