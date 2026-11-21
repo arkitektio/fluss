@@ -17,6 +17,7 @@ from rath.links.graphql_ws import GraphQLWSLink
 from rath.links.split import SplitLink
 
 from arkitekt_spec.declare.app import AppRegistry
+from arkitekt_spec.declare.tested import tested_against
 from arkitekt_spec.declare.widgets import SearchWidget
 
 from fluss.api.schema import (
@@ -42,6 +43,10 @@ registry = AppRegistry()
 """What fluss brings to an app: its service, and the types it can send by id."""
 
 
+TESTED = tested_against("fluss")
+"""The fluss server this release wants: the one its release job tested it against."""
+
+
 @registry.service(
     schema=build_relative_path("api", "schema.graphql"),
     turms=build_relative_path("api", "project.json"),
@@ -49,7 +54,7 @@ registry = AppRegistry()
 def fluss(
     fluss: Annotated[
         Alias,
-        Require("live.arkitekt.fluss", "Where the flows this app can run are kept"),
+        Require("live.arkitekt.fluss", "Where the flows this app can run are kept", version=TESTED),
     ],
     tokens: TokenLoader,
 ) -> Fluss:

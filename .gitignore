@@ -147,3 +147,6 @@ static_collected
 data
 
 .dokker
+
+# The server version the integration tests ran against, stamped into a release.
+fluss/_tested.json

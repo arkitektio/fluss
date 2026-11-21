@@ -1,3 +1,4 @@
+from arkitekt_spec.declare.tested import record_tested
 from collections.abc import Generator
 import pytest
 from dokker import testing, Deployment
@@ -130,6 +131,8 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedFluss, 
         setup.up()
 
         setup.check_health()
+        # What a release of this client then says it was tested against.
+        record_tested("fluss", http_url.rsplit("/graphql", 1)[0] + "/ht")
 
         with fluss as fluss:
             deployed = DeployedFluss(
