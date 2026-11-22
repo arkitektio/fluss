@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class BufferCompleteAtom(TransformationAtom):
     buffer: list[NextInEvent] = Field(default_factory=list)
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()

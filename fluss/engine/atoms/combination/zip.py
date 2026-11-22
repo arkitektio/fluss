@@ -26,7 +26,7 @@ class ZipAtom(CombinationAtom):
         default_factory=lambda: [deque(), deque()]
     )  # Buffers for each input
 
-    async def run(self):
+    async def run(self) -> None:
         self.state = list(map(lambda x: None, self.node.ins))
         self.complete = list(map(lambda x: None, self.node.ins))
         self.buffer = list(

@@ -19,7 +19,7 @@ class ArkitektFilterAtom(FilterAtom):
         kwargs = self.set_values
 
         stream_one = self.node.ins[0]
-        for arg, item in zip(event.value, stream_one):
+        for arg, item in zip(event.value, stream_one, strict=False):
             kwargs[item.key] = arg
 
         returns = await self.contract.acall_raw(

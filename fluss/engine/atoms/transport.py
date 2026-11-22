@@ -9,7 +9,7 @@ class AtomTransport(BaseModel):
     queue: asyncio.Queue[OutEvent]
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    async def put(self, event: OutEvent):
+    async def put(self, event: OutEvent) -> None:
         await self.queue.put(event)
 
     async def get(self) -> OutEvent:

@@ -21,7 +21,7 @@ class FilterAtom(Atom):
     async def filter(self, event: NextInEvent) -> bool:
         raise NotImplementedError("This needs to be implemented")
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
@@ -84,7 +84,7 @@ class MapAtom(Atom):
     async def map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
@@ -152,7 +152,7 @@ class MergeMapAtom(Atom):
     async def merge_map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
@@ -223,7 +223,7 @@ class OrderedAtom(Atom):
     async def map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")
 
-    async def check_ordered(self):
+    async def check_ordered(self) -> None:
         tasks_to_remove = []
         for key, task in self.runningEvents.items():
             if task.done():
@@ -255,12 +255,12 @@ class OrderedAtom(Atom):
         for key in tasks_to_remove:
             self.runningEvents.pop(key)
 
-    async def publish_changes(self):
+    async def publish_changes(self) -> None:
         while True:
             await asyncio.sleep(0.1)
             await self.check_ordered()
 
-    async def run(self):
+    async def run(self) -> None:
         publish_task = asyncio.create_task(self.publish_changes())
 
         try:
@@ -293,7 +293,7 @@ class OrderedAtom(Atom):
                     break  # Everything left of us is done, so we can shut down as well
 
                 if event.type == EventType.ERROR:
-                    for key, value in self.runningEvents.items():
+                    for _key, value in self.runningEvents.items():
                         value.cancel()
                         try:
                             await value
@@ -334,7 +334,7 @@ class AsCompletedAtom(Atom):
     async def map(self, event: InEvent) -> Returns:
         raise NotImplementedError("This needs to be implemented")
 
-    async def check_as_completed(self):
+    async def check_as_completed(self) -> None:
         tasks_to_remove = []
         for key, task in self.runningEvents.items():
             if task.done():
@@ -364,12 +364,12 @@ class AsCompletedAtom(Atom):
         for key in tasks_to_remove:
             self.runningEvents.pop(key)
 
-    async def publish_changes(self):
+    async def publish_changes(self) -> None:
         while True:
             await asyncio.sleep(0.1)
             await self.check_as_completed()
 
-    async def run(self):
+    async def run(self) -> None:
         publish_task = asyncio.create_task(self.publish_changes())
 
         try:
@@ -401,7 +401,7 @@ class AsCompletedAtom(Atom):
                     break  # Everything left of us is done, so we can shut down as well
 
                 if event.type == EventType.ERROR:
-                    for key, value in self.runningEvents.items():
+                    for _key, value in self.runningEvents.items():
                         value.cancel()
                         try:
                             await value

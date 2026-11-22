@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 class SplitAtom(CombinationAtom):
     complete: list[bool] = [False, False]
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
 
                 if event.type == EventType.ERROR:
-                    for index, stream in enumerate(self.node.outs):
+                    for index, _stream in enumerate(self.node.outs):
                         await self.transport.put(
                             ErrorOutEvent(
                                 handle=f"return_{index}",
@@ -33,7 +33,7 @@ class SplitAtom(CombinationAtom):
                     break
 
                 if event.type == EventType.NEXT:
-                    for index, stream in enumerate(self.node.outs):
+                    for index, _stream in enumerate(self.node.outs):
                         if event.value[index] is not None:
                             await self.transport.put(
                                 NextOutEvent(
@@ -45,7 +45,7 @@ class SplitAtom(CombinationAtom):
                             )
 
                 if event.type == EventType.COMPLETE:
-                    for index, stream in enumerate(self.node.outs):
+                    for index, _stream in enumerate(self.node.outs):
                         await self.transport.put(
                             CompleteOutEvent(
                                 handle=f"return_{index}",

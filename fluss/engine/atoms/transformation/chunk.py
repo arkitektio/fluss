@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class ChunkAtom(CombinationAtom):
     complete: list[bool] = [False, False]
 
-    async def run(self):
+    async def run(self) -> None:
         iterations = self.set_values.get("iterations", 1)
         sleep = self.set_values.get("sleep", None)
         iteration_sleep = self.set_values.get("iteration_sleep", None)

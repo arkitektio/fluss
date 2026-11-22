@@ -17,16 +17,16 @@ class RecordingTask:
     def __init__(self) -> None:
         self.keys: list[str | None] = []
 
-    async def acall_raw(self, **kwargs: Any) -> dict:  # noqa: ANN401
+    async def acall_raw(self, **kwargs: Any) -> dict[str, Any]:
         self.keys.append(kwargs.get("call_key"))
         return {}
 
 
 class RootClient:
     def __init__(self) -> None:
-        self.kwargs: list[dict] = []
+        self.kwargs: list[dict[str, Any]] = []
 
-    async def acall_raw(self, **kwargs: Any) -> dict:  # noqa: ANN401
+    async def acall_raw(self, **kwargs: Any) -> dict[str, Any]:
         self.kwargs.append(kwargs)
         return {}
 

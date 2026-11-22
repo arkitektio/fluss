@@ -16,13 +16,13 @@ class FilterAtom(CombinationAtom):
     # TODO: Rename to match as it maps to a specifc type
     complete: list[bool] = [False, False]
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
 
                 if event.type == EventType.ERROR:
-                    for index, stream in enumerate(self.node.outstream):
+                    for index, _stream in enumerate(self.node.outstream):
                         await self.transport.put(
                             ErrorOutEvent(
                                 handle=f"return_{index}",
@@ -47,7 +47,7 @@ class FilterAtom(CombinationAtom):
                     )
 
                 if event.type == EventType.COMPLETE:
-                    for index, stream in enumerate(self.node.outstream):
+                    for index, _stream in enumerate(self.node.outstream):
                         await self.transport.put(
                             CompleteOutEvent(
                                 handle=f"return_{index}",

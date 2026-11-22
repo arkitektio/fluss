@@ -3,15 +3,19 @@
 import asyncio
 import itertools
 from collections.abc import AsyncGenerator
-from types import SimpleNamespace
+from types import SimpleNamespace, TracebackType
 from typing import Any
 
 import pytest
 from arkitekt_runtime.actors.build import actor_builder_for
 from arkitekt_runtime.messages import Assign
+from arkitekt_runtime.task import Task
+from rekuest.client.client import Rekuest
 
-from fluss.api.schema import Flow
+from fluss.api.schema import Flow, RekuestActionNodeBase
+from fluss.engine.contractors import NodeContractor
 from fluss.engine.engine import arun_flow
+from fluss.fluss import Fluss
 
 
 def make_port(
@@ -159,7 +163,12 @@ class MockContract:
         """Enter the contract."""
         return await self.aenter()
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit the contract."""
         await self.aexit()
 
@@ -213,10 +222,17 @@ def fake_assignment() -> Assign:
     )
 
 
+class _Calls(dict[str, list[Any]]):
+    """The recorded calls, plus the fake clients that record them."""
+
+    fluss: Fluss
+    rekuest: Rekuest
+
+
 @pytest.fixture
-def fluss_calls() -> dict[str, list[Any]]:
+def fluss_calls() -> _Calls:
     """Fake fluss and rekuest clients, recording the run-tracking calls made on them."""
-    calls: dict[str, list[Any]] = _Calls(
+    calls = _Calls(
         {
             "create": [],
             "track": [],
@@ -253,31 +269,27 @@ def fluss_calls() -> dict[str, list[Any]]:
         calls["collect"].append(references)
 
     # Handed to the engine as its clients; nothing is patched.
-    calls.fluss = SimpleNamespace(  # type: ignore[attr-defined]
+    calls.fluss = SimpleNamespace(  # type: ignore[assignment] -- a recording double
         acreate_run=acreate_run,
         atrack=atrack,
         asnapshot=asnapshot,
         aclose_run=aclose_run,
     )
-    calls.rekuest = SimpleNamespace(acollect=acollect)  # type: ignore[attr-defined]
+    calls.rekuest = SimpleNamespace(acollect=acollect)  # type: ignore[assignment] -- a recording double
     return calls
 
 
-def make_contractor(contract: MockContract) -> Any:
+def make_contractor(contract: MockContract) -> NodeContractor:
     """A contractor that hands the given contract to every rekuest node."""
 
     async def contractor(
-        node: Any,
-        rekuest: Any,
-        task: Any = None,  # noqa: ANN401 -- a Task, which this double never uses
+        node: RekuestActionNodeBase,
+        rekuest: Rekuest,
+        task: Task | None = None,
     ) -> MockContract:
         return contract
 
     return contractor
-
-
-class _Calls(dict):
-    """The recorded calls, plus the fake clients that record them."""
 
 
 async def run_to_list(
@@ -285,7 +297,7 @@ async def run_to_list(
     kwargs: dict[str, Any],
     contract: MockContract,
     assignment: Assign,
-    clients: Any,  # noqa: ANN401
+    clients: _Calls,
 ) -> list[dict[str, Any]]:
     """Drive arun_flow to completion and collect the yielded dicts."""
     return [
@@ -304,7 +316,7 @@ async def run_to_list(
 
 @pytest.mark.asyncio
 async def test_function_flow_yields_once(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """A function flow yields a single dict keyed by the return port keys."""
     contract = MockContract(call_result={"return0": 2})
@@ -323,7 +335,7 @@ async def test_function_flow_yields_once(
 
 @pytest.mark.asyncio
 async def test_generator_flow_yields_multiple(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """A generator flow yields one dict per value reaching the return node."""
     contract = MockContract(iterate_results=[{"return0": 1}, {"return0": 2}])
@@ -341,7 +353,7 @@ async def test_generator_flow_yields_multiple(
 
 @pytest.mark.asyncio
 async def test_globals_are_passed_to_nodes(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """Global values from kwargs are merged into the node call kwargs."""
     flow = make_flow(
@@ -362,7 +374,7 @@ async def test_globals_are_passed_to_nodes(
 
 @pytest.mark.asyncio
 async def test_missing_stream_key_raises(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """A missing arg key fails fast and still closes the run."""
     contract = MockContract(call_result={"return0": 2})
@@ -376,7 +388,7 @@ async def test_missing_stream_key_raises(
 
 @pytest.mark.asyncio
 async def test_missing_global_key_raises(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """A missing global key fails fast."""
     flow = make_flow(
@@ -393,7 +405,7 @@ async def test_missing_global_key_raises(
 
 @pytest.mark.asyncio
 async def test_node_error_propagates(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """An exception inside a node call propagates out of the engine."""
     contract = MockContract(error=RuntimeError("boom"))
@@ -407,7 +419,7 @@ async def test_node_error_propagates(
 
 @pytest.mark.asyncio
 async def test_cancellation_cleans_up(
-    fluss_calls: dict[str, list[Any]], fake_assignment: Assign
+    fluss_calls: _Calls, fake_assignment: Assign
 ) -> None:
     """Cancelling the consumer cancels atom tasks and closes the run."""
     contract = MockContract(hang=True)
@@ -474,12 +486,12 @@ async def test_a_flow_deploys_as_a_generator_and_binds_its_stateful_nodes() -> N
     from fluss.engine.deploy import adeploy_flow
 
     class Rekuest:
-        async def afind(self, hash: str) -> Any:  # noqa: ANN401
+        async def afind(self, hash: str) -> Action:
             return Action.model_construct(hash=hash, name="Move stage", stateful=True)
 
         async def acreate_higher_order_implementation(
             self, **kwargs: Any
-        ) -> dict[str, Any]:  # noqa: ANN401
+        ) -> dict[str, Any]:
             self.sent = kwargs
             return kwargs
 

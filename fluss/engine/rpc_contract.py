@@ -4,9 +4,11 @@ from types import TracebackType
 from typing import Any, Protocol, runtime_checkable
 
 from arkitekt_runtime.postmans.errors import AssignException
+from arkitekt_runtime.task import Task
 from koil.composition.base import KoiledModel
 from pydantic import PrivateAttr
 from rekuest.api.schema import Action
+from rekuest.client.client import RekuestCaller
 
 from fluss.engine.errors import FlowLogicError
 from fluss.engine.steps import STEP_METHOD
@@ -32,15 +34,15 @@ class RPCContract(Protocol):
         reference: str | None = None,
         assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ): ...
+    ) -> dict[str, Any]: ...
 
-    async def aiterate_raw(
+    def aiterate_raw(
         self,
         kwargs: dict[str, Any],
         reference: str | None = None,
         assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ): ...
+    ) -> AsyncGenerator[dict[str, Any], None]: ...
 
     async def __aexit__(
         self,
@@ -104,7 +106,7 @@ class DirectContract(KoiledModel):
 
     _calls: int = PrivateAttr(default=0)
 
-    def _caller(self) -> Any:  # noqa: ANN401 -- a Task or a RekuestCaller; they share no base
+    def _caller(self) -> Task | RekuestCaller:
         """Whichever of the two makes a call of the right kind. Their raw signatures match.
 
         Without a task the call is a root, which only the caller client starts: the app
@@ -145,7 +147,7 @@ class DirectContract(KoiledModel):
         reference: str | None = None,
         assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ):
+    ) -> dict[str, Any]:
         """Call the function or generator in a blocking or non-blocking way.
         This method should be implemented by the subclass.
         """
@@ -173,7 +175,7 @@ class DirectContract(KoiledModel):
         reference: str | None = None,
         assign_timeout: float | None = None,
         timeout_is_recoverable: bool = False,
-    ) -> AsyncGenerator[Any, None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Call the function or generator in a blocking or non-blocking way.
         This method should be implemented by the subclass.
         """
@@ -188,7 +190,7 @@ class DirectContract(KoiledModel):
 
     async def _aiterate_bound(
         self, kwargs: dict[str, Any], reference: str | None
-    ) -> AsyncGenerator[Any, None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """A stateful generator's yields, through the binding of the run."""
         with _bound(self):
             async for value in self.task.aiterate_dependency_raw(

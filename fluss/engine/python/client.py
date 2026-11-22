@@ -8,7 +8,7 @@ storing it with ``fluss.avalidate_python_flow`` (or locally, with
 """
 
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import Any, TypeVar
 
 from arkitekt_spec.actions import (
     ActionKind,
@@ -26,6 +26,8 @@ from fluss.api import schema
 from fluss.api.schema import Effects, ManifestEntryInput, PythonFlow, PythonFlowStatus
 from fluss.engine.steps import step_dependency
 from fluss.fluss import Fluss
+
+PortInputT = TypeVar("PortInputT", schema.ArgPortInput, schema.ReturnPortInput)
 
 
 async def amanifest(
@@ -49,7 +51,7 @@ async def amanifest(
     ]
 
 
-def _port(port: PortLike, cls: type[Any]) -> Any:  # noqa: ANN401 -- a fluss ArgPortInput or ReturnPortInput, as ``cls``
+def _port(port: PortLike, cls: type[PortInputT]) -> PortInputT:
     """What validation reads of a port (its type, not its widgets or effects), as a fluss port input."""
     fields: dict[str, Any] = {
         "key": port.key,

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class BufferCountAtom(TransformationAtom):
     buffer: list[InEvent] = Field(default_factory=list)
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()

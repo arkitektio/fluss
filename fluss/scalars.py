@@ -24,16 +24,16 @@ class NodeException(str):
     """Custom scalar type for representing exceptions as strings."""
 
     @classmethod
-    def __get_pydantic_core_schema__(  # noqa: D105
+    def __get_pydantic_core_schema__(
         cls,
-        source_type: Any,  # noqa: ANN401
-        handler: GetCoreSchemaHandler,  # noqa: ANN401
+        source_type: object,
+        handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Get the pydantic core schema for the search query"""
         return core_schema.no_info_after_validator_function(cls.validate, handler(str))
 
     @classmethod
-    def validate(cls, v: Any) -> str:  # noqa: ANN401
+    def validate(cls, v: object) -> str:
         """Validate the input value."""
         if isinstance(v, Exception):
             v = str(v)
@@ -72,7 +72,7 @@ def parse_or_raise(v: str) -> DocumentNode:
             for loc in e.locations:
                 if e.source:
                     x += "\n" + print_source_location(e.source, loc)
-        raise ValueError("Could not parse to graphql: \n" + x)
+        raise ValueError("Could not parse to graphql: \n" + x) from e
 
 
 class SearchQuery(str):
@@ -94,16 +94,16 @@ class SearchQuery(str):
     """
 
     @classmethod
-    def __get_pydantic_core_schema__(  # noqa: D105
+    def __get_pydantic_core_schema__(
         cls,
-        source_type: Any,  # noqa: ANN401
-        handler: GetCoreSchemaHandler,  # noqa: ANN401
+        source_type: object,
+        handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Get the pydantic core schema for the search query"""
         return core_schema.no_info_after_validator_function(cls.validate, handler(str))
 
     @classmethod
-    def validate(cls, v: str | DocumentNode | Any) -> str:
+    def validate(cls, v: object) -> str:
         """Validate the search query"""
         if not isinstance(v, str) and not isinstance(v, DocumentNode):
             raise TypeError(

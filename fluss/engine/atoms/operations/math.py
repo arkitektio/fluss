@@ -22,7 +22,7 @@ operation_map = {
 class MathAtom(OperationAtom):
     complete: list[bool] = [False, False]
 
-    async def run(self):
+    async def run(self) -> None:
         operation = operation_map.get(self.node.implementation)
         number = self.set_values.get("number", 1)
 

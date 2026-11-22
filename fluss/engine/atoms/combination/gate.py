@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class GateAtom(CombinationAtom):
     buffer: asyncio.Queue[NextInEvent] | None = None
 
-    async def run(self):
+    async def run(self) -> None:
         self.buffer = asyncio.Queue()
 
         forward_first = self.set_values.get("forward_first", True)

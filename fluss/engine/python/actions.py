@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator
 from functools import partial
-from typing import Any, Self
+from typing import Any
 
 import pydantic_monty
 from arkitekt_runtime.actors.functional import FUNC, FunctionalActor
@@ -81,11 +81,11 @@ class PythonFlowActor(FunctionalActor):
 
     _pool: MontyPool = PrivateAttr(default_factory=MontyPool)
 
-    def aiterate_results(self: Self, **params: Any) -> AsyncGenerator[Any, None]:  # noqa: ANN401 -- the run's params
+    def aiterate_results(self, **params: Any) -> AsyncGenerator[Any, None]:
         """Run the flow with the actor's pool."""
         return self.iterator(self.assign, pool=self._pool, **params)
 
-    async def acancel(self: Self) -> None:
+    async def acancel(self) -> None:
         """Cancel the runs, then stop the workers."""
         try:
             await super().acancel()

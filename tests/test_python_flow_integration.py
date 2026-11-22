@@ -8,6 +8,7 @@ Nothing here needs rekuest: a run is recorded, not executed, by the server.
 
 import asyncio
 import uuid
+from typing import Any, NoReturn
 
 import pytest
 
@@ -16,8 +17,9 @@ pytest.importorskip("fluss_monty")
 from fluss_monty import arun_python_flow  # noqa: E402
 from rath.operation import GraphQLException  # noqa: E402
 
-from fluss.api.schema import PythonFlowStatus, PythonRunStatus  # noqa: E402
+from fluss.api.schema import PythonFlow, PythonFlowStatus, PythonRunStatus  # noqa: E402
 from fluss.fluss import Fluss  # noqa: E402
+from tests.conftest import DeployedFluss
 
 SOURCE = """
 async def main(x: int) -> int:
@@ -30,11 +32,13 @@ async def main(x: int) -> int:
 """
 
 
-async def _no_actions(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
+async def _no_actions(*args: Any, **kwargs: Any) -> NoReturn:
     raise AssertionError("this flow calls no actions")
 
 
-def _store(fluss: Fluss, source: str, title: str, previous: str | None = None):
+def _store(
+    fluss: Fluss, source: str, title: str, previous: str | None = None
+) -> PythonFlow:
     return fluss.create_python_flow(
         source=source,
         entrypoint="main",
@@ -46,7 +50,7 @@ def _store(fluss: Fluss, source: str, title: str, previous: str | None = None):
 
 
 @pytest.mark.integration
-def test_a_draft_can_be_deleted(deployed_app) -> None:
+def test_a_draft_can_be_deleted(deployed_app: DeployedFluss) -> None:
     fluss = deployed_app.fluss
     flow = _store(fluss, SOURCE, f"draft-{uuid.uuid4().hex[:6]}")
 
@@ -55,7 +59,9 @@ def test_a_draft_can_be_deleted(deployed_app) -> None:
 
 
 @pytest.mark.integration
-def test_a_source_that_does_not_validate_is_refused(deployed_app) -> None:
+def test_a_source_that_does_not_validate_is_refused(
+    deployed_app: DeployedFluss,
+) -> None:
     with pytest.raises(GraphQLException, match="does not validate"):
         _store(
             deployed_app.fluss,
@@ -65,7 +71,9 @@ def test_a_source_that_does_not_validate_is_refused(deployed_app) -> None:
 
 
 @pytest.mark.integration
-def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> None:
+def test_a_python_flow_is_published_versioned_run_and_archived(
+    deployed_app: DeployedFluss,
+) -> None:
     fluss = deployed_app.fluss
     title = f"increment-{uuid.uuid4().hex[:6]}"
     flow = _store(fluss, SOURCE, title)

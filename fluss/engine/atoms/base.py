@@ -1,6 +1,7 @@
 import asyncio
 import logging
-from typing import Any
+from types import TracebackType
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -11,6 +12,8 @@ from fluss.engine.events import ErrorOutEvent, InEvent
 from fluss.engine.reference_counter import ReferenceCounter
 
 logger = logging.getLogger(__name__)
+
+AtomT = TypeVar("AtomT", bound="Atom")
 
 
 class Atom(BaseModel):
@@ -31,7 +34,7 @@ class Atom(BaseModel):
         assert self._private_queue is not None, "Atom not started"
         return await self._private_queue.get()
 
-    async def put(self, event: InEvent):
+    async def put(self, event: InEvent) -> None:
         assert self._private_queue is not None, "Atom not started"
         try:
             logger.info(f"Putting event {event}")
@@ -50,20 +53,25 @@ class Atom(BaseModel):
                 )
             )
 
-    async def aenter(self):
+    async def aenter(self) -> None:
         self._private_queue = asyncio.Queue()
 
-    async def aexit(self):
+    async def aexit(self) -> None:
         self._private_queue = None
 
-    async def __aenter__(self):
+    async def __aenter__(self: AtomT) -> AtomT:
         await self.aenter()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.aexit()
 
-    async def start(self):
+    async def start(self) -> None:
         try:
             await self.run()
         except Exception as e:

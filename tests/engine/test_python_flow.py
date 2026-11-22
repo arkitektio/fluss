@@ -5,22 +5,32 @@ fakes behind the action, and Monty is real.
 """
 
 import asyncio
+from collections.abc import AsyncIterator, Awaitable, Callable
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 import pytest_asyncio
+from arkitekt_spec.declare.task import LogLevel
 
 pytest.importorskip("fluss_monty")
 import pydantic_monty  # noqa: E402
 from fluss_monty import (  # noqa: E402
+    ActionLike,
     ManifestAction,
     arun_python_flow,
     build_stubs,
     validate_python_flow,
 )
 
-from fluss.api.schema import ArgPortInput, Effects, PortKind, ReturnPortInput  # noqa: E402
+from fluss.api.schema import (  # noqa: E402
+    ArgPortInput,
+    Effects,
+    PortKind,
+    PythonFlow,
+    PythonRunStatus,
+    ReturnPortInput,
+)
 
 
 def arg(key: str, kind: PortKind, **extra: Any) -> ArgPortInput:
@@ -109,7 +119,7 @@ class Recorder:
 
 
 @pytest_asyncio.fixture
-async def pool():
+async def pool() -> AsyncIterator[pydantic_monty.AsyncMonty]:
     async with pydantic_monty.AsyncMonty(min_processes=1, max_processes=2) as pool:
         yield pool
 
@@ -202,7 +212,9 @@ def test_a_real_action_with_ports_deeper_than_its_fragment_stubs_loosely() -> No
 
 
 @pytest.mark.asyncio
-async def test_a_run_from_a_stored_fluss_python_flow(pool) -> None:
+async def test_a_run_from_a_stored_fluss_python_flow(
+    pool: pydantic_monty.AsyncMonty,
+) -> None:
     """The runner reads a ``PythonFlow`` as the server returns it, and derives its ports again."""
     from fluss.api.schema import PythonFlow
 
@@ -262,7 +274,8 @@ async def test_a_run_from_a_stored_fluss_python_flow(pool) -> None:
 class FakeTask:
     def __init__(self, block: bool = False) -> None:
         self.id = "task-1"
-        self.logs: list[tuple[str, Any]] = []
+        self.logs: list[tuple[str, LogLevel]] = []
+        self.called = asyncio.Event()
         self.keys: list[str] = []
         self.logged_before_call: list[list[str]] = []
         self.block = block
@@ -273,7 +286,7 @@ class FakeTask:
         self,
         *,
         kwargs: dict,
-        action: Any,  # noqa: ANN401
+        action: object,
         reference: str,
         call_key: str,
     ) -> dict:
@@ -281,6 +294,7 @@ class FakeTask:
         self.references.append(reference)
         await asyncio.sleep(0.05)
         self.logged_before_call.append([text for text, _ in self.logs])
+        self.called.set()
         if self.block:
             try:
                 await asyncio.Event().wait()
@@ -289,40 +303,38 @@ class FakeTask:
                 raise
         return {"return0": f"{kwargs['image']}-mask"}
 
-    async def alog(self, text: str, level: Any) -> None:  # noqa: ANN401
+    async def alog(self, text: str, level: LogLevel) -> None:
         self.logs.append((text, level))
 
 
 class FakeFluss:
-    def __init__(self, flow: Any) -> None:  # noqa: ANN401
+    def __init__(self, flow: PythonFlow) -> None:
         self.flow = flow
         self.closed: list[str] = []
 
-    async def aget_python_flow(self, id: str) -> Any:  # noqa: ANN401
+    async def aget_python_flow(self, id: str) -> PythonFlow:
         return self.flow
 
-    async def acreate_python_run(self, flow: str, task_id: str) -> Any:  # noqa: ANN401
+    async def acreate_python_run(self, flow: str, task_id: str) -> SimpleNamespace:
         import datetime
 
         return SimpleNamespace(
             id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.UTC)
         )
 
-    async def aclose_python_run(self, run: str, status: Any) -> None:  # noqa: ANN401
+    async def aclose_python_run(self, run: str, status: PythonRunStatus) -> None:
         self.closed.append(status.value)
 
 
 class FakeRekuest:
-    async def afind(self, hash: str) -> Any:  # noqa: ANN401
+    async def afind(self, hash: str) -> ActionLike:
         return SEGMENT.action
 
 
 LOGGING = "async def main(image: MikroImage) -> MikroImage:\n    print('segmenting', image)\n    return await segment(image)\n"
 
 
-async def _stored(pool, source: str) -> Any:  # noqa: ANN401
-    from fluss.api.schema import PythonFlow
-
+async def _stored(pool: pydantic_monty.AsyncMonty, source: str) -> PythonFlow:
     report = await validate_python_flow(source, [SEGMENT], pool=pool)
     assert report.ok, report.diagnostics
     return PythonFlow.model_validate(
@@ -365,7 +377,9 @@ async def _stored(pool, source: str) -> Any:  # noqa: ANN401
 
 
 @pytest.mark.asyncio
-async def test_run_python_flow_logs_while_it_runs_and_keys_its_calls(pool) -> None:
+async def test_run_python_flow_logs_while_it_runs_and_keys_its_calls(
+    pool: pydantic_monty.AsyncMonty,
+) -> None:
     from fluss.engine.python.actions import MontyPool, run_python_flow
 
     flow, task, monty = (
@@ -403,15 +417,16 @@ async def test_run_python_flow_logs_while_it_runs_and_keys_its_calls(pool) -> No
 
 
 @pytest.mark.asyncio
-async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
+async def test_a_cancelled_run_is_closed_cancelled(
+    pool: pydantic_monty.AsyncMonty,
+) -> None:
     from fluss.engine.python.actions import run_python_flow
 
     flow, task = FakeFluss(await _stored(pool, LOGGING)), FakeTask(block=True)
     running = asyncio.create_task(
         run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task)  # type: ignore[arg-type]
     )
-    while not task.logged_before_call:
-        await asyncio.sleep(0.05)
+    await task.called.wait()
     running.cancel()
     with pytest.raises(asyncio.CancelledError):
         await running
@@ -425,12 +440,14 @@ async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
 
 @pytest.mark.asyncio
 async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(
-    pool,
+    pool: pydantic_monty.AsyncMonty,
 ) -> None:
     from fluss.engine.python.client import adeploy_python_flow
 
     class Deployer(FakeRekuest):
-        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict:  # noqa: ANN401
+        async def acreate_higher_order_implementation(
+            self, **kwargs: Any
+        ) -> dict[str, Any]:
             self.kwargs = kwargs
             return kwargs
 
@@ -463,7 +480,7 @@ async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(
 
 @pytest.mark.asyncio
 async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_called_through_it(
-    pool,
+    pool: pydantic_monty.AsyncMonty,
 ) -> None:
     """Whose state a step reads or changes is chosen when the run starts, never per call."""
     from fluss.engine.python.actions import MontyPool, run_python_flow
@@ -472,10 +489,12 @@ async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_calle
     stage = action("h-seg", SEGMENT.action.args, SEGMENT.action.returns, stateful=True)
 
     class Rekuest:
-        async def afind(self, hash: str) -> Any:  # noqa: ANN401
+        async def afind(self, hash: str) -> SimpleNamespace:
             return stage
 
-        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict:  # noqa: ANN401
+        async def acreate_higher_order_implementation(
+            self, **kwargs: Any
+        ) -> dict[str, Any]:
             self.kwargs = kwargs
             return kwargs
 
@@ -611,11 +630,11 @@ async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_requ
     from fluss.engine.python.client import acreate_python_flow_from_source
 
     class Recording:
-        async def acreate_python_flow(self, **kwargs: Any) -> Any:  # noqa: ANN401
+        async def acreate_python_flow(self, **kwargs: Any) -> SimpleNamespace:
             self.created = kwargs
             return SimpleNamespace(id="7")
 
-        async def apublish_python_flow(self, id: str) -> Any:  # noqa: ANN401
+        async def apublish_python_flow(self, id: str) -> SimpleNamespace:
             self.published = id
             return SimpleNamespace(id=id, status="PUBLISHED")
 
@@ -644,9 +663,9 @@ async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_requ
 async def test_the_actor_hands_every_run_its_pool_and_closes_it_with_itself() -> None:
     from fluss.engine.python.actions import MontyPool, PythonFlowActor
 
-    seen: list[Any] = []
+    seen: list[object] = []
 
-    async def assign(**params: Any) -> dict:  # noqa: ANN401
+    async def assign(**params: Any) -> dict[str, Any]:
         seen.append(params["pool"])
         await params["pool"].aget()
         return {}
@@ -661,7 +680,7 @@ async def test_the_actor_hands_every_run_its_pool_and_closes_it_with_itself() ->
     assert seen[0] is seen[1] is actor._pool
     assert actor._pool._pool is not None
 
-    async def no_runs(*args: Any, **kwargs: Any) -> int:  # noqa: ANN401
+    async def no_runs(*args: Any, **kwargs: Any) -> int:
         return 0
 
     actor._astop_all = no_runs  # type: ignore[method-assign]
@@ -669,5 +688,7 @@ async def test_the_actor_hands_every_run_its_pool_and_closes_it_with_itself() ->
     assert actor._pool._pool is None
 
 
-async def _once(function: Any, **params: Any) -> Any:  # noqa: ANN401
+async def _once(
+    function: Callable[..., Awaitable[dict[str, Any]]], **params: Any
+) -> AsyncIterator[dict[str, Any]]:
     yield await function(**params)

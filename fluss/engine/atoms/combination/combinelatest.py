@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class CombineLatestAtom(CombinationAtom):
     state: list[NextInEvent | None] = Field(default_factory=lambda: [None, None])
 
-    async def run(self):
+    async def run(self) -> None:
         self.state = [None for _ in self.node.ins]
         try:
             while True:

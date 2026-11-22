@@ -304,7 +304,9 @@ async def arun_flow(
                     if spawned_event.type == EventType.NEXT:
                         yield_dict = {}
 
-                        for port, port_value in zip(return_stream, spawned_event.value):
+                        for port, port_value in zip(
+                            return_stream, spawned_event.value, strict=False
+                        ):
                             yield_dict[port.key] = port_value
 
                         yield yield_dict
@@ -329,7 +331,7 @@ async def arun_flow(
         raise
 
     except Exception:
-        logging.critical(f"Assignation {assignment} failed", exc_info=True)
+        logger.critical(f"Assignation {assignment} failed", exc_info=True)
         await fluss.asnapshot(run=run, events=list(state.values()), t=t)
         raise
 

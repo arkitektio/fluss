@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class AllAtom(TransformationAtom):
-    def assert_values(self, values, check_list_length=True):
+    def assert_values(self, values: object, check_list_length: bool = True) -> None:
         if not isinstance(values, list):
             raise ValueError("AllAtom expects a list of values")
 
@@ -24,7 +24,7 @@ class AllAtom(TransformationAtom):
             if not all([len(v) != 0 for v in values if isinstance(v, list)]):
                 raise ValueError("Atom expects all lists to be not empty")
 
-    async def run(self):
+    async def run(self) -> None:
         list_length = self.set_values.get("list_length", False)
         try:
             while True:

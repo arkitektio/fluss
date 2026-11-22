@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class OmitAtom(TransformationAtom):
-    async def run(self):
+    async def run(self) -> None:
         try:
             while True:
                 event = await self.get()
