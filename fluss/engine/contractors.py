@@ -1,11 +1,13 @@
 from typing import Protocol, runtime_checkable
-from fluss.engine.rpc_contract import DirectContract, RPCContract
+
+from arkitekt_runtime.task import Task
+from rekuest.client.client import Rekuest
+
 from fluss.api.schema import (
     RekuestActionNodeBase,
 )
-from rekuest.client.client import Rekuest
+from fluss.engine.rpc_contract import DirectContract, RPCContract
 from fluss.engine.steps import step_key
-from arkitekt_runtime.task import Task
 
 
 @runtime_checkable
@@ -36,5 +38,9 @@ async def arkicontractor(
     dependency = step_key(node.id) if action.stateful and task is not None else None  # type: ignore[attr-defined]
 
     return DirectContract(
-        action=action, reference=node.id, rekuest=rekuest, task=task, dependency=dependency  # type: ignore[attr-defined]
+        action=action,
+        reference=node.id,  # type: ignore[attr-defined]
+        rekuest=rekuest,
+        task=task,
+        dependency=dependency,
     )

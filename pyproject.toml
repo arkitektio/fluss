@@ -30,62 +30,6 @@ engine = ["rekuest>=15", "arkitekt-runtime>=10.5"]
 python = ["rekuest>=15", "arkitekt-runtime>=10.5", "fluss-monty>=1"]
 
 
-[tool.uv]
-dev-dependencies =  [
-    "pytest-asyncio>=0.26.0",
-    "pytest-cov>=6.1.1",
-    "pytest>=8.3.5",
-    "python-semantic-release>=9.21.0",
-    "autoflake>=1.7.7,<2",
-    "aiohttp>=3.8.3,<4",
-    "pytest-aiohttp>=1.0.4,<2",
-    "ruff>=0.0.254",
-    "turms>=3.0",
-    "dokker>=2.8",
-    "rekuest>=15",
-    "basedpyright>=1.21",
-]
-
-[tool.basedpyright]
-include = ["fluss"]
-exclude = ["**/__pycache__", "tests"]
-typeCheckingMode = "standard"
-
-
-[tool.ruff]
-extend-select = ["ANN", "D1", "UP"]
-
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-]
-
-# Same as Black.
-line-length = 100
-extend-ignore = ["UP037", "UP038", "UP042"]
-
-[tool.ruff.lint.per-file-ignores]
-"fluss/api/schema.py" = ["UP035"]
 # `_tested.json` is written by the integration tests (the server version they ran against)
 # and is not in git: named as an artifact, on both, it is shipped all the same.
 [tool.hatch.build.targets.sdist]
@@ -163,3 +107,19 @@ exclude_commit_patterns = [
     '^Merge ',
 ]
 
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=0.26.0",
+    "pytest-cov>=6.1.1",
+    "pytest>=8.3.5",
+    "python-semantic-release>=9.21.0",
+    "autoflake>=1.7.7,<2",
+    "aiohttp>=3.8.3,<4",
+    "pytest-aiohttp>=1.0.4,<2",
+    "ruff==0.17.6",
+    "turms>=3.0",
+    "dokker>=2.8",
+    "rekuest>=15",
+    "basedpyright==1.40.2",
+]

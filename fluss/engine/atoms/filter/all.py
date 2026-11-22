@@ -1,9 +1,13 @@
 import asyncio
-from fluss.engine.atoms.transformation.base import TransformationAtom
-from fluss.engine.events import EventType, InEvent, NextOutEvent, ErrorOutEvent, CompleteOutEvent
 import logging
-from pydantic import Field
-from functools import reduce
+
+from fluss.engine.atoms.transformation.base import TransformationAtom
+from fluss.engine.events import (
+    CompleteOutEvent,
+    ErrorOutEvent,
+    EventType,
+    NextOutEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +62,7 @@ class AllAtom(TransformationAtom):
                                 caused_by=[event.current_t],
                             )
                         )
-                    except ValueError as e:
+                    except ValueError:
                         logger.exception(f"Atom {self.node} filtered out an event")
 
                         await self.transport.put(

@@ -30,18 +30,28 @@ class Fluss(Composition, FlussApi):
         description="The Rath client used to interact with the Rekuest API.",
     )
 
-    def _serialize(self, operation: type[TOperation], variables: dict[str, Any]) -> dict[str, Any]:
+    def _serialize(
+        self, operation: type[TOperation], variables: dict[str, Any]
+    ) -> dict[str, Any]:
         # fluss sends every argument, set or not (no exclude_unset), as it always has.
         return operation.Arguments(**variables).model_dump(by_alias=True)
 
-    def execute(self, operation: type[TOperation], variables: dict[str, Any]) -> TOperation:
+    def execute(
+        self, operation: type[TOperation], variables: dict[str, Any]
+    ) -> TOperation:
         """Executes a query or mutation in a blocking way."""
         return unkoil(self.aexecute, operation, variables)
 
-    async def aexecute(self, operation: type[TOperation], variables: dict[str, Any]) -> TOperation:
+    async def aexecute(
+        self, operation: type[TOperation], variables: dict[str, Any]
+    ) -> TOperation:
         """Executes a query or mutation in a non-blocking way."""
-        x = await self.rath.aquery(operation.Meta.document, self._serialize(operation, variables))
-        return operation.model_validate(x.data, context=origin_context(client=self, rath=self.rath))
+        x = await self.rath.aquery(
+            operation.Meta.document, self._serialize(operation, variables)
+        )
+        return operation.model_validate(
+            x.data, context=origin_context(client=self, rath=self.rath)
+        )
 
     def subscribe(
         self, operation: type[TOperation], variables: dict[str, Any]

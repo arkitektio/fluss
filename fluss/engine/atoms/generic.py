@@ -1,18 +1,18 @@
 import asyncio
+import logging
+
+from pydantic import Field
+
+from fluss.engine.atoms.base import Atom
 from fluss.engine.events import (
-    OutEvent,
-    Returns,
+    CompleteOutEvent,
+    ErrorOutEvent,
     EventType,
     InEvent,
     NextInEvent,
     NextOutEvent,
-    ErrorOutEvent,
-    CompleteOutEvent,
+    Returns,
 )
-from fluss.engine.atoms.base import Atom
-import logging
-from pydantic import Field
-import asyncio
 
 logger = logging.getLogger(__name__)
 

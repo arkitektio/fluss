@@ -1,16 +1,16 @@
 """Tests for the flow execution engine (`arun_flow`)."""
 
-from arkitekt_runtime.actors.build import actor_builder_for
 import asyncio
 import itertools
-from typing import Any
 from collections.abc import AsyncGenerator
+from types import SimpleNamespace
+from typing import Any
 
 import pytest
-from types import SimpleNamespace
-from fluss.api.schema import Flow
+from arkitekt_runtime.actors.build import actor_builder_for
 from arkitekt_runtime.messages import Assign
 
+from fluss.api.schema import Flow
 from fluss.engine.engine import arun_flow
 
 
@@ -216,13 +216,15 @@ def fake_assignment() -> Assign:
 @pytest.fixture
 def fluss_calls() -> dict[str, list[Any]]:
     """Fake fluss and rekuest clients, recording the run-tracking calls made on them."""
-    calls: dict[str, list[Any]] = _Calls({
-        "create": [],
-        "track": [],
-        "snapshot": [],
-        "close": [],
-        "collect": [],
-    })
+    calls: dict[str, list[Any]] = _Calls(
+        {
+            "create": [],
+            "track": [],
+            "snapshot": [],
+            "close": [],
+            "collect": [],
+        }
+    )
 
     counter = itertools.count()
 
@@ -252,7 +254,10 @@ def fluss_calls() -> dict[str, list[Any]]:
 
     # Handed to the engine as its clients; nothing is patched.
     calls.fluss = SimpleNamespace(  # type: ignore[attr-defined]
-        acreate_run=acreate_run, atrack=atrack, asnapshot=asnapshot, aclose_run=aclose_run
+        acreate_run=acreate_run,
+        atrack=atrack,
+        asnapshot=asnapshot,
+        aclose_run=aclose_run,
     )
     calls.rekuest = SimpleNamespace(acollect=acollect)  # type: ignore[attr-defined]
     return calls
@@ -304,7 +309,9 @@ async def test_function_flow_yields_once(
     """A function flow yields a single dict keyed by the return port keys."""
     contract = MockContract(call_result={"return0": 2})
 
-    results = await run_to_list(make_flow(), {"x": 1}, contract, fake_assignment, fluss_calls)
+    results = await run_to_list(
+        make_flow(), {"x": 1}, contract, fake_assignment, fluss_calls
+    )
 
     assert results == [{"out": 2}]
     assert contract.calls == [{"x": 1}]
@@ -322,7 +329,11 @@ async def test_generator_flow_yields_multiple(
     contract = MockContract(iterate_results=[{"return0": 1}, {"return0": 2}])
 
     results = await run_to_list(
-        make_flow(action_kind="GENERATOR"), {"x": 1}, contract, fake_assignment, fluss_calls
+        make_flow(action_kind="GENERATOR"),
+        {"x": 1},
+        contract,
+        fake_assignment,
+        fluss_calls,
     )
 
     assert results == [{"out": 1}, {"out": 2}]
@@ -341,7 +352,9 @@ async def test_globals_are_passed_to_nodes(
     )
     contract = MockContract(call_result={"return0": 10})
 
-    results = await run_to_list(flow, {"x": 1, "scale": 10}, contract, fake_assignment, fluss_calls)
+    results = await run_to_list(
+        flow, {"x": 1, "scale": 10}, contract, fake_assignment, fluss_calls
+    )
 
     assert results == [{"out": 10}]
     assert contract.calls == [{"scale": 10, "x": 1}]
@@ -420,8 +433,9 @@ async def test_run_flow_action_is_registered() -> None:
     `FlussService.register_implementations` is the caller in a real app; that
     wiring is tested on the arkitekt side, which is where fakts is installed.
     """
-    from fluss.arkitekt import registry as package
     from arkitekt_spec.declare.app import AppRegistry
+
+    from fluss.arkitekt import registry as package
 
     # What an app does with `fluss_service`: take the package registry in.
     registry = AppRegistry()
@@ -463,12 +477,22 @@ async def test_a_flow_deploys_as_a_generator_and_binds_its_stateful_nodes() -> N
         async def afind(self, hash: str) -> Any:  # noqa: ANN401
             return Action.model_construct(hash=hash, name="Move stage", stateful=True)
 
-        async def acreate_higher_order_implementation(self, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+        async def acreate_higher_order_implementation(
+            self, **kwargs: Any
+        ) -> dict[str, Any]:  # noqa: ANN401
             self.sent = kwargs
             return kwargs
 
     class Task:
-        async def acall_dependency_raw(self, dependency: str, method: str, kwargs: dict[str, Any], *, reference: str | None, call_key: str) -> dict[str, Any]:
+        async def acall_dependency_raw(
+            self,
+            dependency: str,
+            method: str,
+            kwargs: dict[str, Any],
+            *,
+            reference: str | None,
+            call_key: str,
+        ) -> dict[str, Any]:
             self.through = (dependency, method, call_key)
             return {"return0": kwargs["x"]}
 
@@ -476,13 +500,28 @@ async def test_a_flow_deploys_as_a_generator_and_binds_its_stateful_nodes() -> N
     await adeploy_flow(flow, rekuest, runner="impl-3")  # type: ignore[arg-type]
     sent = rekuest.sent
     assert (sent["lower"], sent["interface"]) == ("impl-3", "flow:flow-1")
-    assert sent["config"] == {"bound": {"flow": "flow-1"}, "args_key": "kwargs", "returns_key": "returns"}
+    assert sent["config"] == {
+        "bound": {"flow": "flow-1"},
+        "args_key": "kwargs",
+        "returns_key": "returns",
+    }
     definition = sent["definition"]
-    assert definition.kind == "GENERATOR", "as run_flow is: the server refuses a wrapper of another kind"
-    assert ([p.key for p in definition.args], [p.key for p in definition.returns]) == (["x"], ["out"])
+    assert definition.kind == "GENERATOR", (
+        "as run_flow is: the server refuses a wrapper of another kind"
+    )
+    assert ([p.key for p in definition.args], [p.key for p in definition.returns]) == (
+        ["x"],
+        ["out"],
+    )
     (step,) = sent["dependencies"]
-    assert (step.key, step.auto_resolvable, step.optional) == ("step_middle", True, False)
-    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [("step", "h-middle")]
+    assert (step.key, step.auto_resolvable, step.optional) == (
+        "step_middle",
+        True,
+        False,
+    )
+    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [
+        ("step", "h-middle")
+    ]
 
     node = next(n for n in flow.graph.nodes if n.id == "middle")
     contract = await arkicontractor(node, rekuest, task)  # type: ignore[arg-type]

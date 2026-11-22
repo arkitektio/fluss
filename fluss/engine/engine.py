@@ -9,8 +9,12 @@ when the engine is driven through the registered ``run_flow`` action).
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any
 from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Any
+
+from arkitekt_runtime.actors.base import Actor
+from arkitekt_runtime.messages import Assign
+from rath.scalars import ID
 
 from fluss.api.schema import (
     ArgNode,
@@ -21,10 +25,6 @@ from fluss.api.schema import (
     RunEventKind,
     TrackMutationTrack,
 )
-from rath.scalars import ID
-from arkitekt_runtime.actors.base import Actor
-from arkitekt_runtime.messages import Assign
-
 from fluss.engine.atoms.transport import AtomTransport
 from fluss.engine.atoms.utils import atomify
 from fluss.engine.contractors import NodeContractor, arkicontractor
@@ -42,8 +42,8 @@ from fluss.engine.rpc_contract import RPCContract
 from fluss.engine.utils import connected_events
 
 if TYPE_CHECKING:
-    from rekuest.client.client import Rekuest
     from arkitekt_runtime.task import Task
+    from rekuest.client.client import Rekuest
 
     from fluss.fluss import Fluss
 
@@ -212,7 +212,9 @@ async def arun_flow(
 
         # Get the nodes that are not connected to argNode AND have no instream
         nodes_without_instream = [
-            node for node in nodes_without_instream if node.id not in connected_arg_nodes
+            node
+            for node in nodes_without_instream
+            if node.id not in connected_arg_nodes
         ]
 
         # Send initial events to nodes without instream (they are not connected
@@ -302,9 +304,7 @@ async def arun_flow(
                     if spawned_event.type == EventType.NEXT:
                         yield_dict = {}
 
-                        for port, port_value in zip(
-                            return_stream, spawned_event.value
-                        ):
+                        for port, port_value in zip(return_stream, spawned_event.value):
                             yield_dict[port.key] = port_value
 
                         yield yield_dict

@@ -1,18 +1,16 @@
 """Conftest file for pytest fixtures."""
 
 import pytest
-from fluss.api.schema import (
-    MapStrategy,
-    ReactiveNode,
-    BaseGraphNodePosition,
-    ReactiveImplementation,
-    PortKind,
-    GraphNodeKind,
-    FlussArgPort,
-    FlussReturnPort
-    
-)
 
+from fluss.api.schema import (
+    BaseGraphNodePosition,
+    FlussArgPort,
+    FlussReturnPort,
+    GraphNodeKind,
+    PortKind,
+    ReactiveImplementation,
+    ReactiveNode,
+)
 
 
 @pytest.fixture(scope="session")
@@ -32,21 +30,20 @@ def reactive_zip_node() -> ReactiveNode:
         ins=[
             [
                 FlussArgPort(
-                    key="x", kind=PortKind.INT, nullable=False,
+                    key="x",
+                    kind=PortKind.INT,
+                    nullable=False,
                 )
             ],
-            [
-                FlussArgPort(
-                    key="y", kind=PortKind.INT, nullable=False
-                )
-            ],
+            [FlussArgPort(key="y", kind=PortKind.INT, nullable=False)],
         ],
         outs=[
             [
                 FlussReturnPort(
-                    key="return0", kind=PortKind.INT, nullable=False, 
+                    key="return0",
+                    kind=PortKind.INT,
+                    nullable=False,
                 )
             ]
         ],
     )
-

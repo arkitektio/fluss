@@ -1,17 +1,17 @@
 import asyncio
+import logging
+from functools import reduce
+
+from pydantic import Field
+
 from fluss.engine.atoms.transformation.base import TransformationAtom
 from fluss.engine.events import (
+    CompleteOutEvent,
     ErrorOutEvent,
     EventType,
-    OutEvent,
     InEvent,
-    ErrorInEvent,
     NextOutEvent,
-    CompleteOutEvent,
 )
-import logging
-from pydantic import Field
-from functools import reduce
 
 logger = logging.getLogger(__name__)
 

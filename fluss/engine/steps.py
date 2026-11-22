@@ -8,7 +8,11 @@ calls the step through that binding.
 
 import re
 
-from arkitekt_spec.actions import ActionDemandInput, ActionDependencyInput, AgentDependencyInput
+from arkitekt_spec.actions import (
+    ActionDemandInput,
+    ActionDependencyInput,
+    AgentDependencyInput,
+)
 
 #: The slot a stateful step is called through, in the dependency that names it.
 STEP_METHOD = "step"
@@ -31,5 +35,9 @@ def step_dependency(key: str, name: str, action_hash: str) -> AgentDependencyInp
         description=f"The agent that runs {name}. The step is stateful, so the run names one.",
         auto_resolvable=True,
         optional=False,
-        action_dependencies=(ActionDependencyInput(key=STEP_METHOD, demand=ActionDemandInput(hash=action_hash)),),
+        action_dependencies=(
+            ActionDependencyInput(
+                key=STEP_METHOD, demand=ActionDemandInput(hash=action_hash)
+            ),
+        ),
     )

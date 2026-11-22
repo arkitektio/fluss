@@ -4,9 +4,7 @@ The sandbox itself is fluss-monty's (and tested there); here fluss, rekuest and 
 fakes behind the action, and Monty is real.
 """
 
-import ast
 import asyncio
-import time
 from types import SimpleNamespace
 from typing import Any
 
@@ -15,34 +13,63 @@ import pytest_asyncio
 
 pytest.importorskip("fluss_monty")
 import pydantic_monty  # noqa: E402
+from fluss_monty import (  # noqa: E402
+    ManifestAction,
+    arun_python_flow,
+    build_stubs,
+    validate_python_flow,
+)
 
 from fluss.api.schema import ArgPortInput, Effects, PortKind, ReturnPortInput  # noqa: E402
-from fluss_monty import ManifestAction, arun_python_flow, build_stubs, validate_python_flow  # noqa: E402
+
 
 def arg(key: str, kind: PortKind, **extra: Any) -> ArgPortInput:
-    return ArgPortInput(key=key, kind=kind, nullable=extra.pop("nullable", False), **extra)
+    return ArgPortInput(
+        key=key, kind=kind, nullable=extra.pop("nullable", False), **extra
+    )
 
 
 def ret(key: str, kind: PortKind, **extra: Any) -> ReturnPortInput:
-    return ReturnPortInput(key=key, kind=kind, nullable=extra.pop("nullable", False), **extra)
+    return ReturnPortInput(
+        key=key, kind=kind, nullable=extra.pop("nullable", False), **extra
+    )
 
 
 IMAGE = "@mikro/image"
 
 
-def action(hash: str, args: list, returns: list, kind: str = "FUNCTION", stateful: bool = False) -> SimpleNamespace:
-    return SimpleNamespace(hash=hash, kind=kind, args=args, returns=returns, stateful=stateful, name=hash)
+def action(
+    hash: str, args: list, returns: list, kind: str = "FUNCTION", stateful: bool = False
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        hash=hash, kind=kind, args=args, returns=returns, stateful=stateful, name=hash
+    )
 
 
 SEGMENT = ManifestAction(
     alias="segment",
-    action=action("h-seg", [arg("image", PortKind.STRUCTURE, identifier=IMAGE), arg("sigma", PortKind.FLOAT, nullable=True)], [ret("return0", PortKind.STRUCTURE, identifier=IMAGE)]),
+    action=action(
+        "h-seg",
+        [
+            arg("image", PortKind.STRUCTURE, identifier=IMAGE),
+            arg("sigma", PortKind.FLOAT, nullable=True),
+        ],
+        [ret("return0", PortKind.STRUCTURE, identifier=IMAGE)],
+    ),
 )
 MEASURE = ManifestAction(
     alias="measure",
-    action=action("h-measure", [arg("image", PortKind.STRUCTURE, identifier=IMAGE)], [ret("count", PortKind.INT), ret("area", PortKind.FLOAT)]),
+    action=action(
+        "h-measure",
+        [arg("image", PortKind.STRUCTURE, identifier=IMAGE)],
+        [ret("count", PortKind.INT), ret("area", PortKind.FLOAT)],
+    ),
 )
-MOVE = ManifestAction(alias="move_stage", action=action("h-move", [arg("x", PortKind.FLOAT)], []), effect=Effects.IRREVERSIBLE)
+MOVE = ManifestAction(
+    alias="move_stage",
+    action=action("h-move", [arg("x", PortKind.FLOAT)], []),
+    effect=Effects.IRREVERSIBLE,
+)
 ACTIONS = [SEGMENT, MEASURE, MOVE]
 
 SOURCE = '''"""Segment an image and count what is in it."""
@@ -67,7 +94,9 @@ class Recorder:
         self.calls: list[tuple[str, dict, str]] = []
         self.delay = delay
 
-    async def __call__(self, entry: ManifestAction, kwargs: dict, call_key: str) -> dict:
+    async def __call__(
+        self, entry: ManifestAction, kwargs: dict, call_key: str
+    ) -> dict:
         self.calls.append((entry.alias, kwargs, call_key))
         await asyncio.sleep(self.delay)
         if entry.alias == "segment":
@@ -93,20 +122,32 @@ def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
     from rekuest.client.client import Rekuest
 
     from fluss.arkitekt import registry
-    from fluss.engine.python.actions import PythonFlowActor, build_run_python_flow_definition, python_flow_actifier, run_python_flow
+    from fluss.engine.python.actions import (
+        PythonFlowActor,
+        build_run_python_flow_definition,
+        python_flow_actifier,
+        run_python_flow,
+    )
     from fluss.engine.rekuest import RUN_PYTHON_FLOW_CONFIG
     from fluss.fluss import Fluss
 
-    wanted = derive_implementation_details(run_python_flow, RUN_PYTHON_FLOW_CONFIG, registry.structure_registry).injected_variables
+    wanted = derive_implementation_details(
+        run_python_flow, RUN_PYTHON_FLOW_CONFIG, registry.structure_registry
+    ).injected_variables
     assert wanted.task_variables == ["task"]
     assert wanted.service_client_variables == {"fluss": Fluss, "rekuest": Rekuest}
 
     definition = build_run_python_flow_definition(registry.structure_registry)
-    assert [(p.key, p.kind, p.identifier) for p in definition.args] == [("flow", "STRUCTURE", "@fluss/pythonflow"), ("kwargs", "DICT", None)]
+    assert [(p.key, p.kind, p.identifier) for p in definition.args] == [
+        ("flow", "STRUCTURE", "@fluss/pythonflow"),
+        ("kwargs", "DICT", None),
+    ]
     assert definition.kind == "FUNCTION"
 
     # One actor serves every run, and owns the worker pool they share.
-    _, _, builder = python_flow_actifier(run_python_flow, registry.structure_registry, RUN_PYTHON_FLOW_CONFIG)
+    _, _, builder = python_flow_actifier(
+        run_python_flow, registry.structure_registry, RUN_PYTHON_FLOW_CONFIG
+    )
     assert builder.func is PythonFlowActor
 
 
@@ -116,7 +157,13 @@ def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
 def _deep_list(depth: int) -> dict:
     port: dict = {"key": "...", "kind": "INT", "nullable": False}
     for _ in range(depth):
-        port = {"__typename": "ArgPort", "key": "...", "kind": "LIST", "nullable": False, "children": [port]}
+        port = {
+            "__typename": "ArgPort",
+            "key": "...",
+            "kind": "LIST",
+            "nullable": False,
+            "children": [port],
+        }
     return {**port, "key": "xs"}
 
 
@@ -126,10 +173,27 @@ def test_a_real_action_with_ports_deeper_than_its_fragment_stubs_loosely() -> No
 
     real = Action.model_validate(
         {
-            "__typename": "Action", "hash": "h-deep", "id": "1", "name": "deep", "kind": "FUNCTION", "description": None,
+            "__typename": "Action",
+            "hash": "h-deep",
+            "id": "1",
+            "name": "deep",
+            "kind": "FUNCTION",
+            "description": None,
             "args": [_deep_list(4)],
-            "returns": [{"__typename": "ReturnPort", "key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}],
-            "collections": [], "isDev": False, "isTestFor": [], "portGroups": [], "stateful": False,
+            "returns": [
+                {
+                    "__typename": "ReturnPort",
+                    "key": "return0",
+                    "kind": "STRUCTURE",
+                    "identifier": IMAGE,
+                    "nullable": False,
+                }
+            ],
+            "collections": [],
+            "isDev": False,
+            "isTestFor": [],
+            "portGroups": [],
+            "stateful": False,
         }
     )
     stubs, classes = build_stubs([ManifestAction(alias="deep", action=real)])
@@ -145,14 +209,50 @@ async def test_a_run_from_a_stored_fluss_python_flow(pool) -> None:
     report = await validate_python_flow(SOURCE, ACTIONS, pool=pool)
     stored = PythonFlow.model_validate(
         {
-            "__typename": "PythonFlow", "id": "1", "title": "t", "lineage": "l", "source": SOURCE, "entrypoint": "main",
-            "runtime": report.runtime, "status": "PUBLISHED", "hash": "h", "physical": False, "createdAt": "2026-09-28T00:00:00Z",
-            "args": [{"__typename": "ArgPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.args],
-            "returns": [{"__typename": "ReturnPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.returns],
-            "manifest": [{"__typename": "ManifestEntry", "actionHash": m.action_hash, **m.model_dump(exclude={"action_hash"})} for m in report.manifest],
+            "__typename": "PythonFlow",
+            "id": "1",
+            "title": "t",
+            "lineage": "l",
+            "source": SOURCE,
+            "entrypoint": "main",
+            "runtime": report.runtime,
+            "status": "PUBLISHED",
+            "hash": "h",
+            "physical": False,
+            "createdAt": "2026-09-28T00:00:00Z",
+            "args": [
+                {
+                    "__typename": "ArgPort",
+                    **p.model_dump(by_alias=True, exclude_none=True),
+                }
+                for p in report.args
+            ],
+            "returns": [
+                {
+                    "__typename": "ReturnPort",
+                    **p.model_dump(by_alias=True, exclude_none=True),
+                }
+                for p in report.returns
+            ],
+            "manifest": [
+                {
+                    "__typename": "ManifestEntry",
+                    "actionHash": m.action_hash,
+                    **m.model_dump(exclude={"action_hash"}),
+                }
+                for m in report.manifest
+            ],
         }
     )
-    returns = await arun_python_flow(stored.source, {"image": "img"}, ACTIONS, Recorder(), args=stored.args, returns=stored.returns, pool=pool)
+    returns = await arun_python_flow(
+        stored.source,
+        {"image": "img"},
+        ACTIONS,
+        Recorder(),
+        args=stored.args,
+        returns=stored.returns,
+        pool=pool,
+    )
     assert returns == {"return0": "img-mask", "return1": 7}
 
 
@@ -169,7 +269,14 @@ class FakeTask:
         self.cancelled = False
         self.references: list[str] = []
 
-    async def acall_raw(self, *, kwargs: dict, action: Any, reference: str, call_key: str) -> dict:  # noqa: ANN401
+    async def acall_raw(
+        self,
+        *,
+        kwargs: dict,
+        action: Any,  # noqa: ANN401
+        reference: str,
+        call_key: str,
+    ) -> dict:
         self.keys.append(call_key)
         self.references.append(reference)
         await asyncio.sleep(0.05)
@@ -197,7 +304,9 @@ class FakeFluss:
     async def acreate_python_run(self, flow: str, task_id: str) -> Any:  # noqa: ANN401
         import datetime
 
-        return SimpleNamespace(id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.UTC))
+        return SimpleNamespace(
+            id="run-1", created_at=datetime.datetime(2026, 10, 15, tzinfo=datetime.UTC)
+        )
 
     async def aclose_python_run(self, run: str, status: Any) -> None:  # noqa: ANN401
         self.closed.append(status.value)
@@ -218,11 +327,39 @@ async def _stored(pool, source: str) -> Any:  # noqa: ANN401
     assert report.ok, report.diagnostics
     return PythonFlow.model_validate(
         {
-            "__typename": "PythonFlow", "id": "1", "title": "t", "lineage": "l", "source": source, "entrypoint": "main",
-            "runtime": report.runtime, "status": "PUBLISHED", "hash": "h", "physical": False, "createdAt": "2026-09-28T00:00:00Z",
-            "args": [{"__typename": "ArgPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.args],
-            "returns": [{"__typename": "ReturnPort", **p.model_dump(by_alias=True, exclude_none=True)} for p in report.returns],
-            "manifest": [{"__typename": "ManifestEntry", "actionHash": m.action_hash, **m.model_dump(exclude={"action_hash"})} for m in report.manifest],
+            "__typename": "PythonFlow",
+            "id": "1",
+            "title": "t",
+            "lineage": "l",
+            "source": source,
+            "entrypoint": "main",
+            "runtime": report.runtime,
+            "status": "PUBLISHED",
+            "hash": "h",
+            "physical": False,
+            "createdAt": "2026-09-28T00:00:00Z",
+            "args": [
+                {
+                    "__typename": "ArgPort",
+                    **p.model_dump(by_alias=True, exclude_none=True),
+                }
+                for p in report.args
+            ],
+            "returns": [
+                {
+                    "__typename": "ReturnPort",
+                    **p.model_dump(by_alias=True, exclude_none=True),
+                }
+                for p in report.returns
+            ],
+            "manifest": [
+                {
+                    "__typename": "ManifestEntry",
+                    "actionHash": m.action_hash,
+                    **m.model_dump(exclude={"action_hash"}),
+                }
+                for m in report.manifest
+            ],
         }
     )
 
@@ -231,11 +368,29 @@ async def _stored(pool, source: str) -> Any:  # noqa: ANN401
 async def test_run_python_flow_logs_while_it_runs_and_keys_its_calls(pool) -> None:
     from fluss.engine.python.actions import MontyPool, run_python_flow
 
-    flow, task, monty = FakeFluss(await _stored(pool, LOGGING)), FakeTask(), MontyPool(max_processes=1)
+    flow, task, monty = (
+        FakeFluss(await _stored(pool, LOGGING)),
+        FakeTask(),
+        MontyPool(max_processes=1),
+    )
     try:
-        returns = await run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task, pool=monty)  # type: ignore[arg-type]
+        returns = await run_python_flow(
+            "1",
+            {"image": "img"},
+            flow,  # type: ignore[arg-type]
+            FakeRekuest(),  # type: ignore[arg-type]
+            task,  # type: ignore[arg-type]
+            pool=monty,
+        )
         first = await monty.aget()
-        await run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task, pool=monty)  # type: ignore[arg-type]
+        await run_python_flow(
+            "1",
+            {"image": "img"},
+            flow,  # type: ignore[arg-type]
+            FakeRekuest(),  # type: ignore[arg-type]
+            task,  # type: ignore[arg-type]
+            pool=monty,
+        )
         assert await monty.aget() is first
     finally:
         await monty.aclose()
@@ -252,7 +407,9 @@ async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
     from fluss.engine.python.actions import run_python_flow
 
     flow, task = FakeFluss(await _stored(pool, LOGGING)), FakeTask(block=True)
-    running = asyncio.create_task(run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task))  # type: ignore[arg-type]
+    running = asyncio.create_task(
+        run_python_flow("1", {"image": "img"}, flow, FakeRekuest(), task)  # type: ignore[arg-type]
+    )
     while not task.logged_before_call:
         await asyncio.sleep(0.05)
     running.cancel()
@@ -267,7 +424,9 @@ async def test_a_cancelled_run_is_closed_cancelled(pool) -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool) -> None:
+async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(
+    pool,
+) -> None:
     from fluss.engine.python.client import adeploy_python_flow
 
     class Deployer(FakeRekuest):
@@ -279,11 +438,19 @@ async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool)
     await adeploy_python_flow(flow, rekuest, runner="impl-7")  # type: ignore[arg-type]
     sent = rekuest.kwargs
     assert (sent["lower"], sent["interface"]) == ("impl-7", "pythonflow:1")
-    assert sent["config"] == {"bound": {"flow": "1"}, "args_key": "kwargs", "returns_key": "returns"}
+    assert sent["config"] == {
+        "bound": {"flow": "1"},
+        "args_key": "kwargs",
+        "returns_key": "returns",
+    }
     definition = sent["definition"]
     assert definition.kind == "FUNCTION"
-    assert [(p.key, p.kind, p.identifier) for p in definition.args] == [("image", "STRUCTURE", IMAGE)]
-    assert [(p.key, p.kind, p.identifier) for p in definition.returns] == [("return0", "STRUCTURE", IMAGE)]
+    assert [(p.key, p.kind, p.identifier) for p in definition.args] == [
+        ("image", "STRUCTURE", IMAGE)
+    ]
+    assert [(p.key, p.kind, p.identifier) for p in definition.returns] == [
+        ("return0", "STRUCTURE", IMAGE)
+    ]
 
     assert sent["dependencies"] == (), "a stateless step runs wherever it is offered"
 
@@ -295,7 +462,9 @@ async def test_a_published_version_deploys_as_a_wrapper_of_run_python_flow(pool)
 
 
 @pytest.mark.asyncio
-async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_called_through_it(pool) -> None:
+async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_called_through_it(
+    pool,
+) -> None:
     """Whose state a step reads or changes is chosen when the run starts, never per call."""
     from fluss.engine.python.actions import MontyPool, run_python_flow
     from fluss.engine.python.client import adeploy_python_flow
@@ -311,23 +480,47 @@ async def test_a_stateful_step_is_a_dependency_of_the_deployed_flow_and_is_calle
             return kwargs
 
     class Task(FakeTask):
-        async def acall_dependency_raw(self, dependency: str, method: str, kwargs: dict, *, reference: str, call_key: str) -> dict:
+        async def acall_dependency_raw(
+            self,
+            dependency: str,
+            method: str,
+            kwargs: dict,
+            *,
+            reference: str,
+            call_key: str,
+        ) -> dict:
             self.through = (dependency, method, call_key)
             return {"return0": f"{kwargs['image']}-mask"}
 
-    flow, rekuest, task, monty = await _stored(pool, LOGGING), Rekuest(), Task(), MontyPool(max_processes=1)
+    flow, rekuest, task, monty = (
+        await _stored(pool, LOGGING),
+        Rekuest(),
+        Task(),
+        MontyPool(max_processes=1),
+    )
     await adeploy_python_flow(flow, rekuest, runner="impl-7")  # type: ignore[arg-type]
     (step,) = rekuest.kwargs["dependencies"]
     assert (step.key, step.auto_resolvable, step.optional) == ("segment", True, False)
-    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [("step", "h-seg")]
+    assert [(slot.key, slot.demand.hash) for slot in step.action_dependencies] == [
+        ("step", "h-seg")
+    ]
 
     try:
-        returns = await run_python_flow("1", {"image": "img"}, FakeFluss(flow), rekuest, task, pool=monty)  # type: ignore[arg-type]
+        returns = await run_python_flow(
+            "1",
+            {"image": "img"},
+            FakeFluss(flow),  # type: ignore[arg-type]
+            rekuest,  # type: ignore[arg-type]
+            task,  # type: ignore[arg-type]
+            pool=monty,
+        )
     finally:
         await monty.aclose()
     assert returns == {"return0": "img-mask"}
     dependency, method, call_key = task.through
-    assert (dependency, method) == ("segment", "step") and call_key.startswith("segment:")
+    assert (dependency, method) == ("segment", "step") and call_key.startswith(
+        "segment:"
+    )
     assert task.keys == [], "it is not also called by its action"
 
 
@@ -342,27 +535,79 @@ def test_the_manifest_sent_carries_each_actions_typed_ports_and_nothing_else() -
 
     real = Action.model_validate(
         {
-            "__typename": "Action", "hash": "h-seg", "id": "1", "name": "segment", "kind": "FUNCTION", "description": None,
+            "__typename": "Action",
+            "hash": "h-seg",
+            "id": "1",
+            "name": "segment",
+            "kind": "FUNCTION",
+            "description": None,
             "args": [
-                {"__typename": "ArgPort", "key": "image", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False, "label": "Image", "description": "The input"},
-                {"__typename": "ArgPort", "key": "sigma", "kind": "FLOAT", "nullable": True, "default": 1.5},
+                {
+                    "__typename": "ArgPort",
+                    "key": "image",
+                    "kind": "STRUCTURE",
+                    "identifier": IMAGE,
+                    "nullable": False,
+                    "label": "Image",
+                    "description": "The input",
+                },
+                {
+                    "__typename": "ArgPort",
+                    "key": "sigma",
+                    "kind": "FLOAT",
+                    "nullable": True,
+                    "default": 1.5,
+                },
                 _deep_list(2),
             ],
-            "returns": [{"__typename": "ReturnPort", "key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}],
-            "collections": [], "isDev": False, "isTestFor": [], "portGroups": [], "stateful": False,
+            "returns": [
+                {
+                    "__typename": "ReturnPort",
+                    "key": "return0",
+                    "kind": "STRUCTURE",
+                    "identifier": IMAGE,
+                    "nullable": False,
+                }
+            ],
+            "collections": [],
+            "isDev": False,
+            "isTestFor": [],
+            "portGroups": [],
+            "stateful": False,
         }
     )
-    [sent] = manifest_inputs([ManifestAction(alias="segment", action=real, effect="IRREVERSIBLE")])
+    [sent] = manifest_inputs(
+        [ManifestAction(alias="segment", action=real, effect="IRREVERSIBLE")]
+    )
     wire = sent.model_dump(by_alias=True, exclude_none=True, mode="json")
-    assert (wire["alias"], wire["actionHash"], wire["kind"], wire["effect"]) == ("segment", "h-seg", "FUNCTION", "IRREVERSIBLE")
-    assert wire["args"][0] == {"key": "image", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}
-    assert wire["args"][1] == {"key": "sigma", "kind": "FLOAT", "nullable": True, "default": 1.5}
+    assert (wire["alias"], wire["actionHash"], wire["kind"], wire["effect"]) == (
+        "segment",
+        "h-seg",
+        "FUNCTION",
+        "IRREVERSIBLE",
+    )
+    assert wire["args"][0] == {
+        "key": "image",
+        "kind": "STRUCTURE",
+        "identifier": IMAGE,
+        "nullable": False,
+    }
+    assert wire["args"][1] == {
+        "key": "sigma",
+        "kind": "FLOAT",
+        "nullable": True,
+        "default": 1.5,
+    }
     assert wire["args"][2]["children"][0]["kind"] == "LIST"
-    assert wire["returns"] == [{"key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}]
+    assert wire["returns"] == [
+        {"key": "return0", "kind": "STRUCTURE", "identifier": IMAGE, "nullable": False}
+    ]
 
 
 @pytest.mark.asyncio
-async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_request() -> None:
+async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_request() -> (
+    None
+):
     from fluss.engine.python.client import acreate_python_flow_from_source
 
     class Recording:
@@ -375,9 +620,23 @@ async def test_storing_a_source_sends_it_with_its_manifest_and_publishes_on_requ
             return SimpleNamespace(id=id, status="PUBLISHED")
 
     fluss = Recording()
-    flow = await acreate_python_flow_from_source(LOGGING, [SEGMENT], fluss, title="Segment", publish=True)  # type: ignore[arg-type]
+    flow = await acreate_python_flow_from_source(
+        LOGGING,
+        [SEGMENT],
+        fluss,  # type: ignore[arg-type]
+        title="Segment",
+        publish=True,
+    )
     assert (flow.id, fluss.published) == ("7", "7")
-    assert set(fluss.created) == {"source", "entrypoint", "manifest", "structures", "title", "description", "previous"}
+    assert set(fluss.created) == {
+        "source",
+        "entrypoint",
+        "manifest",
+        "structures",
+        "title",
+        "description",
+        "previous",
+    }
     assert [entry.alias for entry in fluss.created["manifest"]] == ["segment"]
 
 
@@ -392,7 +651,9 @@ async def test_the_actor_hands_every_run_its_pool_and_closes_it_with_itself() ->
         await params["pool"].aget()
         return {}
 
-    actor = PythonFlowActor.model_construct(assign=assign, iterator=lambda function, **params: _once(function, **params))
+    actor = PythonFlowActor.model_construct(
+        assign=assign, iterator=lambda function, **params: _once(function, **params)
+    )
     actor._pool = MontyPool(max_processes=1)
     for _ in range(2):
         async for _ in actor.aiterate_results(flow="1"):

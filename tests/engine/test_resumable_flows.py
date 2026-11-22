@@ -7,8 +7,8 @@ next, the node and how often it has called do not.
 from typing import Any
 
 import pytest
-
 from arkitekt_spec.actions import Execution
+
 from fluss.engine.rekuest import RUN_FLOW_CONFIG, RUN_PYTHON_FLOW_CONFIG
 from fluss.engine.rpc_contract import DirectContract
 
@@ -39,8 +39,12 @@ def test_both_flow_runners_are_workflows() -> None:
 @pytest.mark.asyncio
 async def test_a_nodes_calls_are_keyed_by_node_and_occurrence() -> None:
     task = RecordingTask()
-    first = DirectContract.model_construct(action=object(), reference="node-a", rekuest=None, task=task)
-    other = DirectContract.model_construct(action=object(), reference="node-b", rekuest=None, task=task)
+    first = DirectContract.model_construct(
+        action=object(), reference="node-a", rekuest=None, task=task
+    )
+    other = DirectContract.model_construct(
+        action=object(), reference="node-b", rekuest=None, task=task
+    )
 
     await first.acall_raw(kwargs={})
     await other.acall_raw(kwargs={})
@@ -52,7 +56,9 @@ async def test_a_nodes_calls_are_keyed_by_node_and_occurrence() -> None:
 @pytest.mark.asyncio
 async def test_a_root_call_outside_any_task_has_no_key() -> None:
     client = RootClient()
-    contract = DirectContract.model_construct(action=object(), reference="node-a", rekuest=client, task=None)
+    contract = DirectContract.model_construct(
+        action=object(), reference="node-a", rekuest=client, task=None
+    )
 
     await contract.acall_raw(kwargs={})
 

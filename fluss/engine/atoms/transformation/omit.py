@@ -1,13 +1,13 @@
 import asyncio
+import logging
+
 from fluss.engine.atoms.transformation.base import TransformationAtom
 from fluss.engine.events import (
     CompleteOutEvent,
     ErrorOutEvent,
     EventType,
     NextOutEvent,
-    OutEvent,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 

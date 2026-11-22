@@ -1,8 +1,8 @@
 """Test the fake workspace creation"""
 
 import pytest
+
 from fluss.api.schema import FlussApi  # noqa: F401 (the client carries the operations)
-from dokker import Deployment
 
 
 @pytest.mark.integration

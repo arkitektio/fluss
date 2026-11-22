@@ -1,7 +1,8 @@
 import contextlib
+from collections.abc import AsyncGenerator, Iterator
 from types import TracebackType
 from typing import Any, Protocol, runtime_checkable
-from collections.abc import AsyncGenerator, Iterator
+
 from arkitekt_runtime.postmans.errors import AssignException
 from koil.composition.base import KoiledModel
 from pydantic import PrivateAttr
@@ -152,7 +153,13 @@ class DirectContract(KoiledModel):
         # but the rekuest call has no such options; they were never delivered.
         if self.dependency is not None:
             with _bound(self):
-                return await self.task.acall_dependency_raw(self.dependency, STEP_METHOD, kwargs, reference=reference, **self._keyed())
+                return await self.task.acall_dependency_raw(
+                    self.dependency,
+                    STEP_METHOD,
+                    kwargs,
+                    reference=reference,
+                    **self._keyed(),
+                )
         return await self._caller().acall_raw(
             kwargs=kwargs,
             action=self.action,
@@ -179,10 +186,18 @@ class DirectContract(KoiledModel):
             **self._keyed(),
         )
 
-    async def _aiterate_bound(self, kwargs: dict[str, Any], reference: str | None) -> AsyncGenerator[Any, None]:
+    async def _aiterate_bound(
+        self, kwargs: dict[str, Any], reference: str | None
+    ) -> AsyncGenerator[Any, None]:
         """A stateful generator's yields, through the binding of the run."""
         with _bound(self):
-            async for value in self.task.aiterate_dependency_raw(self.dependency, STEP_METHOD, kwargs, reference=reference, **self._keyed()):
+            async for value in self.task.aiterate_dependency_raw(
+                self.dependency,
+                STEP_METHOD,
+                kwargs,
+                reference=reference,
+                **self._keyed(),
+            ):
                 yield value
 
     async def aenter(self) -> "DirectContract":

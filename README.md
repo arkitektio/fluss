@@ -109,10 +109,16 @@ Monty sandbox: `async def main(...)` calls the actions of its manifest by alias.
   deploy it onto an agent that hosts `run_python_flow`:
 
 ```python
-from fluss.engine.python.client import acreate_python_flow_from_source, adeploy_python_flow, amanifest
+from fluss.engine.python.client import (
+    acreate_python_flow_from_source,
+    adeploy_python_flow,
+    amanifest,
+)
 
 actions = await amanifest({"segment": segment_hash}, rekuest)
-flow = await acreate_python_flow_from_source(source, actions, fluss, title="Segment", publish=True)
+flow = await acreate_python_flow_from_source(
+    source, actions, fluss, title="Segment", publish=True
+)
 await adeploy_python_flow(flow, rekuest, runner=run_python_flow_implementation_id)
 ```
 

@@ -1,30 +1,32 @@
-import pytest
-from .utils import expectnext
 import asyncio
-from fluss.engine.events import  OutEvent, NextInEvent
+
+import pytest
+
+from fluss.engine.atoms.transformation.chunk import ChunkAtom
 from fluss.engine.atoms.transport import MockTransport
+from fluss.engine.events import NextInEvent, OutEvent
+from fluss.engine.reference_counter import ReferenceCounter
+
 from .conftest import (
     ReactiveNode,
 )
-from fluss.engine.atoms.transformation.chunk import ChunkAtom
-from fluss.engine.reference_counter import ReferenceCounter
+from .utils import expectnext
+
 
 @pytest.mark.asyncio
 @pytest.mark.actor
 async def test_zip_node(
     reactive_zip_node: ReactiveNode,
 ) -> None:
-    """ Test the zip atom with a reactive node. """
+    """Test the zip atom with a reactive node."""
     event_queue = asyncio.Queue[OutEvent]()
     reference_counter = ReferenceCounter()
     atomtransport = MockTransport(queue=event_queue)
-
 
     async with ChunkAtom(
         node=reactive_zip_node,
         transport=atomtransport,
         reference_counter=reference_counter,
-        
     ) as atom:
         task = asyncio.create_task(atom.start())
         await asyncio.sleep(0.1)
@@ -50,11 +52,8 @@ async def test_zip_node(
         event = expectnext(answer)
         assert event.value == (3,)
 
-
-
         task.cancel()
         try:
             await asyncio.wait_for(task, timeout=0.1)
         except asyncio.CancelledError:
             pass
-

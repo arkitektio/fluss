@@ -11,28 +11,39 @@ closed when the agent cancels the actor.
 
 import asyncio
 import contextlib
+from collections.abc import AsyncGenerator
 from functools import partial
 from typing import Any, Self
-from collections.abc import AsyncGenerator
 
 import pydantic_monty
-from pydantic import PrivateAttr
-from rath.scalars import ID
 from arkitekt_runtime.actors.functional import FUNC, FunctionalActor
 from arkitekt_runtime.actors.types import ActorBuilder
 from arkitekt_runtime.postmans.errors import AssignException
 from arkitekt_runtime.task import Task
-from arkitekt_spec.actions import ActionKind, ArgPortInput, DefinitionInput, PortKind, ReturnPortInput
+from arkitekt_spec.actions import (
+    ActionKind,
+    ArgPortInput,
+    DefinitionInput,
+    PortKind,
+    ReturnPortInput,
+)
 from arkitekt_spec.declare.actors.actify import derive_implementation_details
 from arkitekt_spec.declare.actors.types import ImplementationDetails, RegisterConfig
 from arkitekt_spec.declare.protocol.types import AnyFunction
 from arkitekt_spec.declare.structures.registry import StructureRegistry
 from arkitekt_spec.declare.task import LogLevel
+from fluss_monty import (
+    ManifestAction,
+    PythonFlowError,
+    PythonFlowLimits,
+    arun_python_flow,
+)
+from pydantic import PrivateAttr
+from rath.scalars import ID
 from rekuest.api.schema import Action
 from rekuest.client.client import Rekuest
 
 from fluss.api.schema import PythonFlow, PythonFlowStatus, PythonRunStatus
-from fluss_monty import ManifestAction, PythonFlowError, PythonFlowLimits, arun_python_flow
 from fluss.engine.steps import STEP_METHOD
 from fluss.fluss import Fluss
 
@@ -50,7 +61,9 @@ class MontyPool:
         """The running pool."""
         async with self._lock:
             if self._pool is None:
-                pool = pydantic_monty.AsyncMonty(min_processes=1, max_processes=self.max_processes)
+                pool = pydantic_monty.AsyncMonty(
+                    min_processes=1, max_processes=self.max_processes
+                )
                 await pool.__aenter__()
                 self._pool = pool
             return self._pool
@@ -100,7 +113,9 @@ class _LiveLog:
         while (item := await self.queue.get()) is not None:
             stream, text = item
             if text := text.rstrip("\n"):
-                await self.task.alog(text, LogLevel.WARN if stream == "stderr" else LogLevel.INFO)
+                await self.task.alog(
+                    text, LogLevel.WARN if stream == "stderr" else LogLevel.INFO
+                )
 
     async def aclose(self) -> None:
         """Send what is still queued, then stop."""
@@ -108,12 +123,21 @@ class _LiveLog:
         await self.drain
 
 
-async def resolve_manifest(flow: PythonFlow, rekuest: Rekuest) -> dict[str, tuple[ManifestAction, Action]]:
+async def resolve_manifest(
+    flow: PythonFlow, rekuest: Rekuest
+) -> dict[str, tuple[ManifestAction, Action]]:
     """The flow's manifest with each action looked up by its hash: a missing one fails the run up front."""
     resolved: dict[str, tuple[ManifestAction, Action]] = {}
     for entry in flow.manifest:
         action = await rekuest.afind(hash=entry.action_hash)
-        manifest_action = ManifestAction(alias=entry.alias, action=action, effect=entry.effect.value, app=entry.app, key=entry.key, version=entry.version)
+        manifest_action = ManifestAction(
+            alias=entry.alias,
+            action=action,
+            effect=entry.effect.value,
+            app=entry.app,
+            key=entry.key,
+            version=entry.version,
+        )
         resolved[entry.alias] = (manifest_action, action)
     return resolved
 
@@ -134,13 +158,17 @@ async def run_python_flow(
     # Inputs arrive unexpanded (bypass_expand), so the flow port is a raw ID.
     resolved = await fluss.aget_python_flow(id=ID.validate(flow))
     if resolved.status != PythonFlowStatus.PUBLISHED:
-        raise PythonFlowError(f"Python flow {resolved.id} is {resolved.status.value}; only a PUBLISHED version runs")
+        raise PythonFlowError(
+            f"Python flow {resolved.id} is {resolved.status.value}; only a PUBLISHED version runs"
+        )
 
     # A resumed task gets its run again (one per task), and with it the seed the first attempt
     # drew from: the same flow makes the same calls, which find their results. The clock is
     # left running -- a frozen one would freeze `monotonic()` too, and every deadline with it.
     run = await fluss.acreate_python_run(flow=resolved.id, task_id=task.id)
-    os_policy: pydantic_monty.OSPolicy = {"random_start": {"seed": f"{run.id}:{task.id}"}}
+    os_policy: pydantic_monty.OSPolicy = {
+        "random_start": {"seed": f"{run.id}:{task.id}"}
+    }
     log = _LiveLog(task)
     status = PythonRunStatus.FAILED
     try:
@@ -148,14 +176,27 @@ async def run_python_flow(
 
         # rekuest finds a call again by its key, and failing that by its reference: so the
         # reference names this one call too (a bare alias would answer a call with another's).
-        async def call(entry: ManifestAction, arguments: dict[str, Any], call_key: str) -> dict[str, Any] | None:
+        async def call(
+            entry: ManifestAction, arguments: dict[str, Any], call_key: str
+        ) -> dict[str, Any] | None:
             action, reference = actions[entry.alias][1], f"{task.id}:{call_key}"
             if not action.stateful:
-                return await task.acall_raw(kwargs=arguments, action=action, reference=reference, call_key=call_key)
+                return await task.acall_raw(
+                    kwargs=arguments,
+                    action=action,
+                    reference=reference,
+                    call_key=call_key,
+                )
             # A stateful step runs on the agent this run bound it to when it was started: the
             # deployed flow declares the step as a dependency (``stateful_steps``).
             try:
-                return await task.acall_dependency_raw(entry.alias, STEP_METHOD, arguments, reference=reference, call_key=call_key)
+                return await task.acall_dependency_raw(
+                    entry.alias,
+                    STEP_METHOD,
+                    arguments,
+                    reference=reference,
+                    call_key=call_key,
+                )
             except AssignException as refused:
                 if "not found in parent task dependencies" not in str(refused):
                     raise
@@ -191,15 +232,24 @@ async def run_python_flow(
         await asyncio.shield(_aclose(fluss, run.id, status, log))
 
 
-async def _aclose(fluss: Fluss, run: ID, status: PythonRunStatus, log: _LiveLog) -> None:
+async def _aclose(
+    fluss: Fluss, run: ID, status: PythonRunStatus, log: _LiveLog
+) -> None:
     with contextlib.suppress(Exception):
         await log.aclose()
     await fluss.aclose_python_run(run=run, status=status)
 
 
-def build_run_python_flow_definition(structure_registry: StructureRegistry) -> DefinitionInput:
+def build_run_python_flow_definition(
+    structure_registry: StructureRegistry,
+) -> DefinitionInput:
     """The handcrafted definition of ``run_python_flow``."""
-    flow_port = structure_registry.get_argport_for_cls(PythonFlow, "flow", nullable=False, description="The published Python flow version to run")
+    flow_port = structure_registry.get_argport_for_cls(
+        PythonFlow,
+        "flow",
+        nullable=False,
+        description="The published Python flow version to run",
+    )
 
     # The DICT child kind is a placeholder: values are validated by the server's
     # higher-order implementation against the flow's own ports, never against this one.
@@ -241,7 +291,9 @@ def python_flow_actifier(
 ) -> tuple[DefinitionInput, ImplementationDetails, ActorBuilder]:
     """Like ``flow_actifier``, for the one-shot ``run_python_flow``."""
     config = config or RegisterConfig()
-    implementation_details = derive_implementation_details(function, config, structure_registry)
+    implementation_details = derive_implementation_details(
+        function, config, structure_registry
+    )
     definition = build_run_python_flow_definition(structure_registry)
     return (
         definition,

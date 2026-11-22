@@ -1,21 +1,19 @@
-import asyncio
-
+import logging
 from typing import Any
 
+from arkitekt_runtime.messages import Assign
 from pydantic import BaseModel
-from fluss.engine.atoms.helpers import node_to_reference
-from fluss.api.schema import RekuestMapActionNode, PortKind
-from fluss.engine.rpc_contract import RPCContract
+
+from fluss.api.schema import PortKind, RekuestMapActionNode
 from fluss.engine.atoms.generic import (
+    AsCompletedAtom,
     MapAtom,
     MergeMapAtom,
-    AsCompletedAtom,
     OrderedAtom,
 )
+from fluss.engine.atoms.helpers import node_to_reference
 from fluss.engine.events import InEvent
-import logging
-from arkitekt_runtime.messages import Assign
-
+from fluss.engine.rpc_contract import RPCContract
 
 logger = logging.getLogger(__name__)
 

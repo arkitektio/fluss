@@ -1,8 +1,15 @@
 import asyncio
-from fluss.engine.atoms.helpers import index_for_handle
-from fluss.engine.atoms.combination.base import CombinationAtom
-from fluss.engine.events import EventType, OutEvent, NextInEvent, ErrorInEvent, ErrorOutEvent, NextOutEvent, CompleteOutEvent
 import logging
+
+from fluss.engine.atoms.combination.base import CombinationAtom
+from fluss.engine.atoms.helpers import index_for_handle
+from fluss.engine.events import (
+    CompleteOutEvent,
+    ErrorOutEvent,
+    EventType,
+    NextInEvent,
+    NextOutEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +64,7 @@ class GateAtom(CombinationAtom):
                                     handle="return_0",
                                     value=event.value,
                                     source=self.node.id,
-                                    caused_by=(event.current_t,)
+                                    caused_by=(event.current_t,),
                                 )
                             )
                             forward_first = False
@@ -74,7 +81,7 @@ class GateAtom(CombinationAtom):
                             get_event = await self.buffer.get()
                             if get_event.type == EventType.COMPLETE:
                                 await self.transport.put(
-                                     CompleteOutEvent(
+                                    CompleteOutEvent(
                                         handle="return_0",
                                         type=EventType.COMPLETE,
                                         source=self.node.id,

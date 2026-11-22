@@ -1,10 +1,10 @@
 import asyncio
-from fluss.engine.atoms.operations.base import OperationAtom
-from fluss.engine.events import EventType, NextOutEvent, ErrorOutEvent, CompleteOutEvent
-from fluss.api.schema import ReactiveImplementation
 import logging
 import operator
 
+from fluss.api.schema import ReactiveImplementation
+from fluss.engine.atoms.operations.base import OperationAtom
+from fluss.engine.events import CompleteOutEvent, ErrorOutEvent, EventType, NextOutEvent
 
 logger = logging.getLogger(__name__)
 

@@ -3,9 +3,9 @@
 No server: the rath is a fake returning canned data.
 """
 
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
 from typing import Any
-from collections.abc import AsyncIterator
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -27,7 +27,9 @@ class FakeRath:
     async def aquery(self, document: str, variables: dict[str, Any]) -> Any:
         return self._answer(variables)
 
-    async def asubscribe(self, document: str, variables: dict[str, Any]) -> AsyncIterator[Any]:
+    async def asubscribe(
+        self, document: str, variables: dict[str, Any]
+    ) -> AsyncIterator[Any]:
         yield self._answer(variables)
 
 

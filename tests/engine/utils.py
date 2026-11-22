@@ -1,4 +1,5 @@
 import os
+
 from fluss.engine.events import EventType, OutEvent
 
 DIR_NAME = os.path.dirname(os.path.realpath(__file__))
@@ -14,7 +15,7 @@ def expectnext(event: OutEvent):
             raise event.exception
         else:
             raise Exception(f"Unexpected event: {event}")
-        
+
     return event
 
 

@@ -1,17 +1,18 @@
 """Graph helpers for routing events along flow edges."""
 
 from fluss.api.schema import Graph
+
+from .errors import FlowLogicError
 from .events import (
-    NextInEvent,
-    NextOutEvent,
-    ErrorInEvent,
-    ErrorOutEvent,
     CompleteInEvent,
     CompleteOutEvent,
-    OutEvent,
+    ErrorInEvent,
+    ErrorOutEvent,
     InEvent,
+    NextInEvent,
+    NextOutEvent,
+    OutEvent,
 )
-from .errors import FlowLogicError
 
 
 def connected_events(graph: Graph, event: OutEvent, t: int) -> list[InEvent]:

@@ -1,8 +1,9 @@
 """Tests for the scalars module."""
 
-from fluss.scalars import NodeException
 import pytest
 from pydantic import BaseModel
+
+from fluss.scalars import NodeException
 
 
 class NodeWithError(BaseModel):

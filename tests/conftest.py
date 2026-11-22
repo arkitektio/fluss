@@ -1,22 +1,23 @@
-from arkitekt_spec.declare.tested import record_tested
-from collections.abc import Generator
-import pytest
-from dokker import testing, Deployment
-from dokker.log_watcher import LogWatcher
 import os
 import socket
-from fluss.fluss import Fluss
-from rath.links.auth import ComposedAuthLink
-from rath.links.aiohttp import AIOHttpLink
-from rath.links.graphql_ws import GraphQLWSLink
-from fluss.rath import (
-    FlussRath,
-    SplitLink,
-    FlussLinkComposition,
-)
-from graphql import OperationType
+from collections.abc import Generator
 from dataclasses import dataclass
 
+import pytest
+from arkitekt_spec.declare.tested import record_tested
+from dokker import Deployment, testing
+from dokker.log_watcher import LogWatcher
+from rath.links.aiohttp import AIOHttpLink
+from rath.links.auth import ComposedAuthLink
+from rath.links.graphql_ws import GraphQLWSLink
+
+from fluss.fluss import Fluss
+from fluss.rath import (
+    FlussLinkComposition,
+    FlussRath,
+    SplitLink,
+)
+from graphql import OperationType
 
 project_path = os.path.join(os.path.dirname(__file__), "integration")
 docker_compose_file = os.path.join(project_path, "docker-compose.yml")
@@ -81,7 +82,9 @@ class DeployedFluss:
 
 
 @pytest.fixture(scope="session")
-def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedFluss, None, None]:
+def deployed_app(
+    integration_ports: dict[str, int],
+) -> Generator[DeployedFluss, None, None]:
     """A fixture that deploys the Fluss application using Docker Compose.
 
     A `testing()` stack: a compose project of its own on this run's ports, taken
@@ -94,7 +97,9 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedFluss, 
     # body below drives the lifecycle explicitly, which is what those flags were
     # protecting. Setting them now raises, because the fields are gone.
     setup.add_health_check(
-        url=lambda spec: f"http://localhost:{spec.find_service('fluss').get_port_for_internal(80).published}/graphql",
+        url=lambda spec: (
+            f"http://localhost:{spec.find_service('fluss').get_port_for_internal(80).published}/graphql"
+        ),
         service="fluss",
         timeout=5,
         max_retries=15,
@@ -115,7 +120,9 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedFluss, 
 
         y = FlussRath(
             link=FlussLinkComposition(
-                auth=ComposedAuthLink(token_loader=token_loader, token_refresher=token_loader),
+                auth=ComposedAuthLink(
+                    token_loader=token_loader, token_refresher=token_loader
+                ),
                 split=SplitLink(
                     left=AIOHttpLink(endpoint_url=http_url),
                     right=GraphQLWSLink(ws_endpoint_url=ws_url),

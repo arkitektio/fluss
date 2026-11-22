@@ -9,16 +9,14 @@ import importlib.util
 import os
 from typing import Annotated
 
-from fakts import Alias, Require, TokenLoader
-from fakts.contrib.rath.auth import FaktsAuthLink
-from graphql import OperationType
-from rath.links.aiohttp import AIOHttpLink
-from rath.links.graphql_ws import GraphQLWSLink
-from rath.links.split import SplitLink
-
 from arkitekt_spec.declare.app import AppRegistry
 from arkitekt_spec.declare.tested import tested_against
 from arkitekt_spec.declare.widgets import SearchWidget
+from fakts import Alias, Require, TokenLoader
+from fakts.contrib.rath.auth import FaktsAuthLink
+from rath.links.aiohttp import AIOHttpLink
+from rath.links.graphql_ws import GraphQLWSLink
+from rath.links.split import SplitLink
 
 from fluss.api.schema import (
     Flow,
@@ -32,6 +30,7 @@ from fluss.api.schema import (
 )
 from fluss.fluss import Fluss
 from fluss.rath import FlussLinkComposition, FlussRath
+from graphql import OperationType
 
 
 def build_relative_path(*path: str) -> str:
@@ -54,7 +53,11 @@ TESTED = tested_against("fluss")
 def fluss(
     fluss: Annotated[
         Alias,
-        Require("live.arkitekt.fluss", "Where the flows this app can run are kept", version=TESTED),
+        Require(
+            "live.arkitekt.fluss",
+            "Where the flows this app can run are kept",
+            version=TESTED,
+        ),
     ],
     tokens: TokenLoader,
 ) -> Fluss:
@@ -64,8 +67,16 @@ def fluss(
             link=FlussLinkComposition(
                 auth=FaktsAuthLink(token_loader=tokens),
                 split=SplitLink(
-                    left=AIOHttpLink(endpoint_url=fluss.to_http_path("graphql"), proxy=fluss.proxy, ssl_context=fluss.ssl_context()),
-                    right=GraphQLWSLink(ws_endpoint_url=fluss.to_ws_path("graphql"), proxy=fluss.proxy, ssl_context=fluss.ssl_context()),
+                    left=AIOHttpLink(
+                        endpoint_url=fluss.to_http_path("graphql"),
+                        proxy=fluss.proxy,
+                        ssl_context=fluss.ssl_context(),
+                    ),
+                    right=GraphQLWSLink(
+                        ws_endpoint_url=fluss.to_ws_path("graphql"),
+                        proxy=fluss.proxy,
+                        ssl_context=fluss.ssl_context(),
+                    ),
                     split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
                 ),
             )

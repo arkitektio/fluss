@@ -64,5 +64,7 @@ def test_every_structure_class_the_server_identifies_says_so_itself() -> None:
         identifier: getattr(structure.cls, "__identifier__", None)
         for identifier, structure in declared.registry.structure_registry.identifier_structure_map.items()
     }
-    assert {i: s for i, s in stamped.items() if s is not None} == {i: i for i, s in stamped.items() if s is not None}
+    assert {i: s for i, s in stamped.items() if s is not None} == {
+        i: i for i, s in stamped.items() if s is not None
+    }
     assert any(s is not None for s in stamped.values())

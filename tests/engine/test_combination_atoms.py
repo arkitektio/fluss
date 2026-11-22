@@ -39,7 +39,9 @@ async def _nothing_within(transport: MockTransport, timeout: float = 0.2) -> boo
     return False
 
 
-def _reactive(node: ReactiveNode, implementation: ReactiveImplementation) -> ReactiveNode:
+def _reactive(
+    node: ReactiveNode, implementation: ReactiveImplementation
+) -> ReactiveNode:
     return node.model_copy(update={"implementation": implementation})
 
 
@@ -70,7 +72,9 @@ async def test_combine_latest_emits_on_either_stream(reactive_zip_node: Reactive
 
 
 @pytest.mark.asyncio
-async def test_with_latest_emits_only_on_the_first_stream(reactive_zip_node: ReactiveNode):
+async def test_with_latest_emits_only_on_the_first_stream(
+    reactive_zip_node: ReactiveNode,
+):
     transport = MockTransport(queue=asyncio.Queue[OutEvent]())
     node = _reactive(reactive_zip_node, ReactiveImplementation.WITHLATEST)
 
@@ -95,7 +99,9 @@ async def test_with_latest_emits_only_on_the_first_stream(reactive_zip_node: Rea
         await asyncio.wait_for(task, timeout=1)
 
 
-def _map_node(reactive_zip_node: ReactiveNode, strategy: MapStrategy) -> RekuestMapActionNode:
+def _map_node(
+    reactive_zip_node: ReactiveNode, strategy: MapStrategy
+) -> RekuestMapActionNode:
     return RekuestMapActionNode.model_construct(
         id="1",
         ins=reactive_zip_node.ins[:1],
@@ -117,7 +123,9 @@ def _atomify(node):
     )
 
 
-def test_combine_latest_and_with_latest_build_their_own_atoms(reactive_zip_node: ReactiveNode):
+def test_combine_latest_and_with_latest_build_their_own_atoms(
+    reactive_zip_node: ReactiveNode,
+):
     combine = _reactive(reactive_zip_node, ReactiveImplementation.COMBINELATEST)
     with_latest = _reactive(reactive_zip_node, ReactiveImplementation.WITHLATEST)
 
@@ -126,6 +134,8 @@ def test_combine_latest_and_with_latest_build_their_own_atoms(reactive_zip_node:
 
 
 @pytest.mark.parametrize("strategy", [MapStrategy.MAP_TO, MapStrategy.MAP_FROM])
-def test_an_unimplemented_map_strategy_says_so(reactive_zip_node: ReactiveNode, strategy):
+def test_an_unimplemented_map_strategy_says_so(
+    reactive_zip_node: ReactiveNode, strategy
+):
     with pytest.raises(NotImplementedError, match="Map strategy"):
         _atomify(_map_node(reactive_zip_node, strategy))

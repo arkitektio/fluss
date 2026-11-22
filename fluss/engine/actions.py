@@ -8,23 +8,13 @@ form. The definition is handcrafted (via :func:`flow_actifier`) because its
 cannot be expressed through signature inference.
 """
 
+from collections.abc import AsyncGenerator
 from functools import partial
 from typing import Any
-from collections.abc import AsyncGenerator
 
-from fluss.api.schema import Flow
-from fluss.fluss import Fluss
-from rekuest.client.client import Rekuest
-from arkitekt_runtime.task import Task
-from rath.scalars import ID
-from arkitekt_spec.declare.actors.actify import derive_implementation_details
 from arkitekt_runtime.actors.functional import GEN, FunctionalActor
-from arkitekt_spec.declare.actors.types import (
-    ImplementationDetails,
-    RegisterConfig,
-)
-from arkitekt_spec.declare.protocol.types import AnyFunction
 from arkitekt_runtime.actors.types import ActorBuilder
+from arkitekt_runtime.task import Task
 from arkitekt_spec.actions import (
     ActionKind,
     ArgPortInput,
@@ -32,9 +22,19 @@ from arkitekt_spec.actions import (
     PortKind,
     ReturnPortInput,
 )
+from arkitekt_spec.declare.actors.actify import derive_implementation_details
+from arkitekt_spec.declare.actors.types import (
+    ImplementationDetails,
+    RegisterConfig,
+)
+from arkitekt_spec.declare.protocol.types import AnyFunction
 from arkitekt_spec.declare.structures.registry import StructureRegistry
+from rath.scalars import ID
+from rekuest.client.client import Rekuest
 
+from fluss.api.schema import Flow
 from fluss.engine.engine import arun_flow
+from fluss.fluss import Fluss
 
 
 async def run_flow(
@@ -128,7 +128,9 @@ def flow_actifier(
     definition instead of a signature-derived one."""
     config = config or RegisterConfig()
 
-    implementation_details = derive_implementation_details(function, config, structure_registry)
+    implementation_details = derive_implementation_details(
+        function, config, structure_registry
+    )
     definition = build_run_flow_definition(structure_registry)
 
     return (

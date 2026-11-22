@@ -1,18 +1,20 @@
 """Custom scalars for GraphQL queries and exceptions."""
 
 from typing import Any
+
+from pydantic import GetCoreSchemaHandler
+from pydantic_core import CoreSchema, core_schema
+
 from graphql import (
     DocumentNode,
     FieldNode,
-    parse,
+    GraphQLError,
     OperationDefinitionNode,
     OperationType,
+    parse,
     print_ast,
     print_source_location,
-    GraphQLError,
 )
-from pydantic import GetCoreSchemaHandler
-from pydantic_core import CoreSchema, core_schema
 
 GlobalsMap = dict[str, Any]
 ConstantsMap = dict[str, Any]

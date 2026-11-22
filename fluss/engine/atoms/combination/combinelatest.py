@@ -1,9 +1,17 @@
 import asyncio
-from fluss.engine.atoms.combination.base import CombinationAtom
-from fluss.engine.events import NextInEvent, EventType, ErrorOutEvent, CompleteOutEvent, NextOutEvent
 import logging
+
 from pydantic import Field
+
+from fluss.engine.atoms.combination.base import CombinationAtom
 from fluss.engine.atoms.helpers import index_for_handle
+from fluss.engine.events import (
+    CompleteOutEvent,
+    ErrorOutEvent,
+    EventType,
+    NextInEvent,
+    NextOutEvent,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,26 +54,21 @@ class CombineLatestAtom(CombinationAtom):
                     self.state[streamIndex] = event
 
                     if all(map(lambda x: x is not None, self.state)):
-                        
                         next = ()
                         caused_by = ()
-                        
+
                         for i in range(len(self.state)):
                             inevent = self.state[i]
                             if inevent is not None:
                                 next += inevent.value
                                 caused_by += (inevent.current_t,)
-                                
-                            
-                            
-                        
-                        
+
                         await self.transport.put(
                             NextOutEvent(
                                 handle="return_0",
                                 value=next,
                                 source=self.node.id,
-                                caused_by=caused_by
+                                caused_by=caused_by,
                             )
                         )
 

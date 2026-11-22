@@ -13,20 +13,21 @@ import pytest
 
 pytest.importorskip("fluss_monty")
 
-from fluss.api.schema import PythonFlowStatus, PythonRunStatus  # noqa: E402
-from fluss.fluss import Fluss  # noqa: E402
 from fluss_monty import arun_python_flow  # noqa: E402
 from rath.operation import GraphQLException  # noqa: E402
 
-SOURCE = '''
+from fluss.api.schema import PythonFlowStatus, PythonRunStatus  # noqa: E402
+from fluss.fluss import Fluss  # noqa: E402
+
+SOURCE = """
 async def main(x: int) -> int:
     return x + 1
-'''
+"""
 
-NEXT_SOURCE = '''
+NEXT_SOURCE = """
 async def main(x: int) -> int:
     return x + 2
-'''
+"""
 
 
 async def _no_actions(*args, **kwargs):  # noqa: ANN002, ANN003, ANN202
@@ -56,7 +57,11 @@ def test_a_draft_can_be_deleted(deployed_app) -> None:
 @pytest.mark.integration
 def test_a_source_that_does_not_validate_is_refused(deployed_app) -> None:
     with pytest.raises(GraphQLException, match="does not validate"):
-        _store(deployed_app.fluss, "async def main(x: int) -> int:\n    return await missing(x)\n", "refused")
+        _store(
+            deployed_app.fluss,
+            "async def main(x: int) -> int:\n    return await missing(x)\n",
+            "refused",
+        )
 
 
 @pytest.mark.integration
@@ -73,7 +78,9 @@ def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> 
     published = fluss.publish_python_flow(flow.id)
     assert published.status == PythonFlowStatus.PUBLISHED
     assert fluss.get_python_flow(flow.id).status == PythonFlowStatus.PUBLISHED
-    assert flow.id in [f.id for f in fluss.python_flows(status=[PythonFlowStatus.PUBLISHED])]
+    assert flow.id in [
+        f.id for f in fluss.python_flows(status=[PythonFlowStatus.PUBLISHED])
+    ]
     assert flow.id in [o.value for o in fluss.search_python_flows(search=title)]
 
     # A new version shares the lineage.
@@ -94,7 +101,14 @@ def test_a_python_flow_is_published_versioned_run_and_archived(deployed_app) -> 
     # The stored source runs in the sandbox as it was validated.
     stored = fluss.get_python_flow(flow.id)
     result = asyncio.run(
-        arun_python_flow(stored.source, {"x": 2}, [], _no_actions, entrypoint=stored.entrypoint, returns=stored.returns)
+        arun_python_flow(
+            stored.source,
+            {"x": 2},
+            [],
+            _no_actions,
+            entrypoint=stored.entrypoint,
+            returns=stored.returns,
+        )
     )
     assert list(result.values()) == [3]
 

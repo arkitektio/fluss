@@ -1,11 +1,20 @@
 import asyncio
-from collections import deque
-from fluss.engine.atoms.combination.base import CombinationAtom
-from fluss.engine.events import EventType, NextInEvent,  CompleteInEvent, ErrorOutEvent, CompleteOutEvent, NextOutEvent
-import logging
-from pydantic import Field
-from fluss.engine.atoms.helpers import index_for_handle
 import functools
+import logging
+from collections import deque
+
+from pydantic import Field
+
+from fluss.engine.atoms.combination.base import CombinationAtom
+from fluss.engine.atoms.helpers import index_for_handle
+from fluss.engine.events import (
+    CompleteInEvent,
+    CompleteOutEvent,
+    ErrorOutEvent,
+    EventType,
+    NextInEvent,
+    NextOutEvent,
+)
 
 logger = logging.getLogger(__name__)
 
