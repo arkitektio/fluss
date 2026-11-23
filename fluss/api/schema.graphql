@@ -59,6 +59,20 @@ enum ActionKind {
   GENERATOR
 }
 
+"""Objects to put in a collaboration at once: all of them, or none"""
+input AddManyToCollaborationInput {
+  """The collaboration's key (lok's)"""
+  collaboration: ID!
+
+  """What to put in; a whole before its parts"""
+  objects: [CollaborationObjectRef!]!
+
+  """
+  The collaboration's name, kept here when these are the first things put in
+  """
+  name: String = null
+}
+
 """
 Defines a callback that routes user interactions directly to an Arkitekt Agent via Rekuest.
 """
@@ -308,7 +322,7 @@ input AssignWidgetInput {
   kind: AssignWidgetKind!
 
   """
-  (SLIDER, CHOICE, STRING, SEARCH, CUSTOM, STATE_CHOICE, PROXY) Port path of another port whose value this widget follows and mirrors.
+  (SLIDER, CHOICE, STRING, SEARCH, CUSTOM, BLOK, STATE_CHOICE, PROXY) Port path of another port whose value this widget follows and mirrors.
   """
   followValue: String = null
 
@@ -363,9 +377,17 @@ input AssignWidgetInput {
   children: [ComponentNodeInput!] = null
 
   """
-  (CUSTOM) Widget to render when the UI has no such component in its catalog.
+  (CUSTOM, BLOK) Widget to render when the UI has no such component in its catalog.
   """
   fallback: AssignWidgetInput = null
+
+  """
+  (BLOK) The port blok as v2 BSX: one `<Blok kind="port" context="panel">`. It reads the port as `port`, the form's other arguments as `args` and the agents a run would get as `self` and `deps`; it writes `port.value` and calls no agent.
+  """
+  source: String = null
+
+  """(BLOK) The blok language version the source speaks; 2 is the only one."""
+  vocab: Int = null
 
   """
   (STATE_CHOICE) The agent dependency (by key) whose state provides the choices; omitted: the implementing agent's own state.
@@ -407,6 +429,7 @@ enum AssignWidgetKind {
   CHOICE
   SLIDER
   CUSTOM
+  BLOK
   STRING
   STATE_CHOICE
   PROXY
@@ -420,6 +443,41 @@ interface AssignableNode {
   The timeout in milliseconds to wait for the assigned work before failing.
   """
   nextTimeout: Int
+}
+
+"""
+A port blok as the port's widget: BSX the form draws where the port's control would be.
+"""
+type BlokAssignWidget implements AssignWidget {
+  kind: AssignWidgetKind!
+  followValue: String
+  source: String!
+  vocab: Int!
+  fallback: AssignWidget
+}
+
+"""
+A port blok as the port's widget: BSX the form draws where the port's control would be.
+"""
+input BlokAssignWidgetInput @unionElementOf(union: "AssignWidgetInput", discriminator: "kind", key: "BLOK") {
+  """Port path of another port whose value this widget follows and mirrors."""
+  followValue: String = null
+
+  """Which member of AssignWidgetInput this is."""
+  kind: AssignWidgetKind!
+
+  """
+  The port blok as v2 BSX: one `<Blok kind="port" context="panel">`. It reads the port as `port`, the form's other arguments as `args` and the agents a run would get as `self` and `deps`; it writes `port.value` and calls no agent.
+  """
+  source: String!
+
+  """The blok language version the source speaks; 2 is the only one."""
+  vocab: Int! = 2
+
+  """
+  Widget to render where the UI draws no port bloks; the port's own kind's widget when left out.
+  """
+  fallback: AssignWidgetInput = null
 }
 
 type Choice {
@@ -503,8 +561,20 @@ type Collaboration {
   description: String
   createdAt: DateTime!
 
-  """What is in the collaboration; what is part of these is in it too"""
-  items: [CollaborationItem!]!
+  """
+  The collaboration's key across the hub: what lok grants, and what names it in every service
+  """
+  key: ID!
+
+  """
+  What is in the collaboration, oldest first; what is part of these is in it too. `brought` keeps what was put in by hand (false) or only what came along with it (true)
+  """
+  items(brought: Boolean = null, pagination: OffsetPaginationInput = null): [CollaborationItem!]!
+
+  """
+  How many objects are in the collaboration: all of them, or (`brought`) only those put in by hand (false) or only those that came along with one (true)
+  """
+  itemCount(brought: Boolean = null): Int!
 }
 
 """
@@ -528,8 +598,23 @@ type CollaborationItem {
 
 """An object to put in, or take out of, a collaboration"""
 input CollaborationObjectInput {
+  """The collaboration's key (lok's)"""
   collaboration: ID!
 
+  """The structure the object is known by: @mikro/scene"""
+  identifier: String!
+
+  """The object's id"""
+  object: ID!
+
+  """
+  The collaboration's name, kept here when this is the first thing put in
+  """
+  name: String = null
+}
+
+"""An object, by its structure and id"""
+input CollaborationObjectRef {
   """The structure the object is known by: @mikro/scene"""
   identifier: String!
 
@@ -595,12 +680,6 @@ input ComponentPropInput {
   A function the prop's value is, or in a callback the effect it runs (ui.copy, task.answer, query.refetch, query.fetch_more).
   """
   utilCall: UtilCallInput = null
-}
-
-"""A new collaboration"""
-input CreateCollaborationInput {
-  name: String!
-  description: String = null
 }
 
 """
@@ -878,8 +957,21 @@ input FlowFilter {
   """Filter for items created after this datetime"""
   createdAfter: DateTime
 
+  """
+  Filter to the items this user made, given by their sub (their id in lok), the way a member's profile asks for their work
+  """
+  creator: ID
+
   """Filter by whether the current user has pinned the item"""
   pinned: Boolean
+
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: FlowFilter
   OR: FlowFilter
   NOT: FlowFilter
@@ -1201,13 +1293,20 @@ type MessageEffect implements Effect {
 }
 
 type Mutation {
-  """Create an empty collaboration, to put objects in and grant a guest"""
-  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
-
   """
-  Put an object in a collaboration, with what it needs to be seen: a run brings its flow, a flow its workspace, a workspace its flows
+  Put an object in a collaboration (lok's, by its key), with what it needs to be seen: a run brings its flow, a flow its workspace, a workspace its flows. The collaboration's row here is made the first time something is put in
   """
   addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
+
+  """
+  Put several objects in a collaboration (by its key) at once, a whole before its parts, each with what it needs to be seen: all of them, or none
+  """
+  addManyToCollaboration(input: AddManyToCollaborationInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
+
+  """
+  Put what a workflow (its root task) created in fluss in a collaboration, as it is now: its runs, with their events and snapshots and the flows they execute. What it makes later is not; `dryRun` only says what would be put in
+  """
+  shareWorkflow(input: ShareWorkflowInput!): WorkflowShare! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Take an object out of a collaboration, with what it brought that nothing else there needs
@@ -1215,9 +1314,9 @@ type Mutation {
   removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
-  Delete a collaboration: whoever was granted it sees nothing of it any more
+  Take everything fluss put in a collaboration (by its key) out of it: whoever was granted it sees nothing of it here any more. lok's collaboration, and its grants, stay
   """
-  deleteCollaboration(id: ID!): ID! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
+  deleteCollaboration(key: ID!): ID! @auth(required_scopes: ["fluss_share"], any_role_of: ["fluss_editor"])
 
   """
   Update a workspace's metadata and upsert the flow for the posted graph.
@@ -1512,8 +1611,21 @@ input PythonFlowFilter {
   """Filter for items created after this datetime"""
   createdAfter: DateTime
 
+  """
+  Filter to the items this user made, given by their sub (their id in lok), the way a member's profile asks for their work
+  """
+  creator: ID
+
   """Filter by whether the current user has pinned the item"""
   pinned: Boolean
+
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: PythonFlowFilter
   OR: PythonFlowFilter
   NOT: PythonFlowFilter
@@ -1524,6 +1636,11 @@ input PythonFlowFilter {
 
   """Filter to the versions of one flow"""
   lineage: ID
+
+  """
+  true: only each flow's newest version (the head of its lineage), so a list shows one row per flow; false: only the versions a newer one replaced. The newest version is decided over all of the lineage's versions, so `status` and `search` next to it apply to that head, not to the newest version that happens to match
+  """
+  latest: Boolean
 
   """
   Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
@@ -1618,6 +1735,20 @@ type PythonRun @key(fields: "id", resolvable: true) @identified(by: "@fluss/pyth
   finishedAt: DateTime
 }
 
+"""
+A Python run started (`create`), changed status (`update`: reopened, completed, failed, cancelled) or was deleted (`delete`, the id only). Exactly one field is set.
+"""
+type PythonRunChange {
+  """The run that just started."""
+  create: PythonRun
+
+  """The run that just changed status."""
+  update: PythonRun
+
+  """The id of the run that was deleted."""
+  delete: ID
+}
+
 input PythonRunFilter {
   """Filter by a list of IDs"""
   ids: [ID!]
@@ -1630,6 +1761,14 @@ input PythonRunFilter {
 
   """Filter by whether the current user has pinned the item"""
   pinned: Boolean
+
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: PythonRunFilter
   OR: PythonRunFilter
   NOT: PythonRunFilter
@@ -1694,10 +1833,10 @@ type Query {
   """
   List the organization's collaborations: what a guest granted one sees of it (a guest: the collaborations granted to them)
   """
-  collaborations: [Collaboration!]! @auth(required_scopes: ["fluss_read"])
+  collaborations(pagination: OffsetPaginationInput = null): [Collaboration!]! @auth(required_scopes: ["fluss_read"])
 
-  """Get a single collaboration by ID"""
-  collaboration(id: ID!): Collaboration! @auth(required_scopes: ["fluss_read"])
+  """Get a single collaboration by its key (lok's): what was put in it here"""
+  collaboration(key: ID!): Collaboration! @auth(required_scopes: ["fluss_read"])
 
   """Fetch a single workspace by id."""
   workspace(id: ID!): Workspace! @auth(required_scopes: ["fluss_read"])
@@ -2274,6 +2413,20 @@ type Run @key(fields: "id", resolvable: true) @identified(by: "@fluss/run") {
 }
 
 """
+A run started (`create`), changed status (`update`) or was deleted (`delete`, the id only). Exactly one field is set.
+"""
+type RunChange {
+  """The run that just started."""
+  create: Run
+
+  """The run that just changed, e.g. was completed."""
+  update: Run
+
+  """The id of the run that was deleted."""
+  delete: ID
+}
+
+"""
 A RunEvent is a single event emitted while a Run executes: a streamed value (NEXT), an ERROR, or a COMPLETE, originating from a specific node handle in the flow.
 """
 type RunEvent @key(fields: "id", resolvable: true) {
@@ -2350,6 +2503,14 @@ input RunFilter {
 
   """Filter by whether the current user has pinned the item"""
   pinned: Boolean
+
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: RunFilter
   OR: RunFilter
   NOT: RunFilter
@@ -2357,6 +2518,11 @@ input RunFilter {
 
   """Search by task id (case-insensitive substring)"""
   search: String
+
+  """
+  Filter by run status, e.g. [RUNNING] for the runs still going however old they are
+  """
+  status: [RunStatus!]
 
   """
   Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port (`RequiresInput`), handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query
@@ -2418,6 +2584,51 @@ input SearchAssignWidgetInput @unionElementOf(union: "AssignWidgetInput", discri
 The `SearchQuery` scalar is a GraphQL query string a search widget executes against its ward to populate its choices
 """
 scalar SearchQuery
+
+"""Put what a workflow created in a collaboration, as it is now"""
+input ShareWorkflowInput {
+  """The collaboration's key (lok's)"""
+  collaboration: ID!
+
+  """
+  The workflow: the id of the task a person started, the root of every task it caused
+  """
+  rootTask: ID!
+
+  """Only say what would be put in, and what left out"""
+  dryRun: Boolean! = false
+
+  """The collaboration's name, kept here when this puts the first things in"""
+  name: String = null
+}
+
+"""An object, by its structure and id"""
+type SharedObject {
+  """The structure the object is known by: @mikro/scene"""
+  identifier: String
+
+  """The object's id"""
+  object: ID!
+}
+
+"""
+Created in the workflow, but part of something made before it that is not shared: left out
+"""
+type SkippedObject {
+  """The structure the object is known by"""
+  identifier: String
+
+  """The object's id"""
+  object: ID!
+
+  """The structure of what it is part of"""
+  wholeIdentifier: String
+
+  """
+  The id of what it is part of: put that in, and share the workflow again, to bring it
+  """
+  whole: ID!
+}
 
 type SliderAssignWidget implements AssignWidget {
   kind: AssignWidgetKind!
@@ -2605,6 +2816,22 @@ input StringAssignWidgetInput @unionElementOf(union: "AssignWidgetInput", discri
 type Subscription {
   """Subscribe to the live stream of events for a given run."""
   events(run: ID!): RunEvent! @auth(required_scopes: ["fluss_read"])
+
+  """
+  Every run of the organization as it starts, changes status (RUNNING to COMPLETED) or is deleted: with `runs(filters: { status: [RUNNING] })` a list of the running runs, kept current without polling.
+  """
+  runs: RunChange! @auth(required_scopes: ["fluss_read"])
+
+  """One run as it changes status or is deleted."""
+  run(id: ID!): RunChange! @auth(required_scopes: ["fluss_read"])
+
+  """
+  Every Python run of the organization as it starts, is reopened, finishes or is deleted.
+  """
+  pythonRuns: PythonRunChange! @auth(required_scopes: ["fluss_read"])
+
+  """One Python run as it changes status or is deleted."""
+  pythonRun(id: ID!): PythonRunChange! @auth(required_scopes: ["fluss_read"])
 }
 
 type TimeBucket {
@@ -2734,6 +2961,33 @@ type VanillaEdge implements GraphEdge {
 }
 
 """
+What sharing a workflow put in a collaboration here (or, tried, would put in)
+"""
+type WorkflowShare {
+  """The collaboration's key"""
+  collaboration: ID!
+
+  """Whether nothing was written"""
+  dryRun: Boolean!
+
+  """Put in, with what each needs to be seen"""
+  added: [SharedObject!]!
+
+  """
+  How many parts came along with their whole, without being put in themselves
+  """
+  covered: Int!
+
+  """Left out: parts of something made before the workflow and not shared"""
+  skipped: [SkippedObject!]!
+
+  """
+  Structures here that cannot say what created their objects: not looked at
+  """
+  unknown: [String!]!
+}
+
+"""
 A Workspace is the top-level container that groups the Flows of an organization, mirroring the concept of a project or folder. It is the entry point users edit flows within.
 """
 type Workspace @key(fields: "id", resolvable: true) @identified(by: "@fluss/workspace") {
@@ -2781,8 +3035,21 @@ input WorkspaceFilter {
   """Filter for items created after this datetime"""
   createdAfter: DateTime
 
+  """
+  Filter to the items this user made, given by their sub (their id in lok), the way a member's profile asks for their work
+  """
+  creator: ID
+
   """Filter by whether the current user has pinned the item"""
   pinned: Boolean
+
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: WorkspaceFilter
   OR: WorkspaceFilter
   NOT: WorkspaceFilter

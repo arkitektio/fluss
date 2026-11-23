@@ -46,6 +46,7 @@ class AssignWidgetKind(str, Enum):
     CHOICE = 'CHOICE'
     SLIDER = 'SLIDER'
     CUSTOM = 'CUSTOM'
+    BLOK = 'BLOK'
     STRING = 'STRING'
     STATE_CHOICE = 'STATE_CHOICE'
     PROXY = 'PROXY'
@@ -205,6 +206,19 @@ class RunEventKind(str, Enum):
     UNKNOWN = 'UNKNOWN'
     __str__ = str.__str__
 
+class BlokAssignWidgetInput(BaseModel):
+    """A port blok as the port's widget: BSX the form draws where the port's control would be."""
+    kind: Literal['BLOK'] = Field(default='BLOK')
+    follow_value: str | None = Field(validation_alias=AliasChoices('follow_value', 'followValue'), serialization_alias='followValue', default=None, description='Port path of another port whose value this widget follows and mirrors.')
+    source: str = Field(description='The port blok as v2 BSX: one `<Blok kind="port" context="panel">`. It reads the port as `port`, the form\'s other arguments as `args` and the agents a run would get as `self` and `deps`; it writes `port.value` and calls no agent.')
+    vocab: Annotated[int | None, GraphQLDefault('2')] = Field(default=None, description='The blok language version the source speaks; 2 is the only one.')
+    'The blok language version the source speaks; 2 is the only one.\nDefault: 2'
+    fallback: 'AssignWidgetInput | None' = Field(default=None, description="Widget to render where the UI draws no port bloks; the port's own kind's widget when left out.")
+
+    def model_post_init(self, context):
+        self.__pydantic_fields_set__.update({'kind'})
+    model_config = ConfigDict(frozen=True, extra='forbid')
+
 class ChoiceAssignWidgetInput(BaseModel):
     """A dropdown over the port's `choices`."""
     kind: Literal['CHOICE'] = Field(default='CHOICE')
@@ -357,7 +371,7 @@ class ArgPortInput(BaseModel):
     widget: 'AssignWidgetInput | None' = Field(default=None, description='The assign widget to use for this port, discriminated by `kind`.')
     requires: tuple['RequiresInput', ...] | None = Field(default=None, description="The descriptors for the port. Descriptors are key-value pairs that can be used to add additional metadata to a port. When using rekuest's action search, you can filter actions based on their port descriptors")
     model_config = ConfigDict(frozen=True, extra='forbid')
-AssignWidgetInput = Annotated[ChoiceAssignWidgetInput | CustomAssignWidgetInput | ProxyAssignWidgetInput | SearchAssignWidgetInput | SliderAssignWidgetInput | StateChoiceAssignWidgetInput | StringAssignWidgetInput, Field(discriminator='kind')]
+AssignWidgetInput = Annotated[BlokAssignWidgetInput | ChoiceAssignWidgetInput | CustomAssignWidgetInput | ProxyAssignWidgetInput | SearchAssignWidgetInput | SliderAssignWidgetInput | StateChoiceAssignWidgetInput | StringAssignWidgetInput, Field(discriminator='kind')]
 
 class ChoiceInput(BaseModel):
     """
@@ -1297,6 +1311,10 @@ class FlussChildArgPortNestedChildrenWidgetBase(BaseModel):
     kind: AssignWidgetKind
     model_config = ConfigDict(frozen=True)
 
+class FlussChildArgPortNestedChildrenWidgetBaseBlokAssignWidget(FlussChildArgPortNestedChildrenWidgetBase, BaseModel):
+    """A port blok as the port's widget: BSX the form draws where the port's control would be."""
+    typename: Literal['BlokAssignWidget'] = Field(alias='__typename', default='BlokAssignWidget', exclude=True)
+
 class FlussChildArgPortNestedChildrenWidgetBaseChoiceAssignWidget(FlussChoiceAssignWidget, FlussChildArgPortNestedChildrenWidgetBase, BaseModel):
     """A dropdown over the port's own `choices`."""
     typename: Literal['ChoiceAssignWidget'] = Field(alias='__typename', default='ChoiceAssignWidget', exclude=True)
@@ -1334,13 +1352,17 @@ class FlussChildArgPortNestedChildren(BaseModel):
     typename: Literal['ArgPort'] = Field(alias='__typename', default='ArgPort', exclude=True)
     kind: PortKind
     identifier: str | None = Field(default=None)
-    widget: Annotated[FlussChildArgPortNestedChildrenWidgetBaseChoiceAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseCustomAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseProxyWidget | FlussChildArgPortNestedChildrenWidgetBaseSearchAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseSliderAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseStateChoiceAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortNestedChildrenWidgetBaseCatchAll | None = Field(default=None)
+    widget: Annotated[FlussChildArgPortNestedChildrenWidgetBaseBlokAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseChoiceAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseCustomAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseProxyWidget | FlussChildArgPortNestedChildrenWidgetBaseSearchAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseSliderAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseStateChoiceAssignWidget | FlussChildArgPortNestedChildrenWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortNestedChildrenWidgetBaseCatchAll | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
 class FlussChildArgPortNestedWidgetBase(BaseModel):
     """No documentation"""
     kind: AssignWidgetKind
     model_config = ConfigDict(frozen=True)
+
+class FlussChildArgPortNestedWidgetBaseBlokAssignWidget(FlussChildArgPortNestedWidgetBase, BaseModel):
+    """A port blok as the port's widget: BSX the form draws where the port's control would be."""
+    typename: Literal['BlokAssignWidget'] = Field(alias='__typename', default='BlokAssignWidget', exclude=True)
 
 class FlussChildArgPortNestedWidgetBaseChoiceAssignWidget(FlussChoiceAssignWidget, FlussChildArgPortNestedWidgetBase, BaseModel):
     """A dropdown over the port's own `choices`."""
@@ -1380,7 +1402,7 @@ class FlussChildArgPortNested(BaseModel):
     kind: PortKind
     identifier: str | None = Field(default=None)
     children: tuple[FlussChildArgPortNestedChildren, ...] | None = Field(default=None)
-    widget: Annotated[FlussChildArgPortNestedWidgetBaseChoiceAssignWidget | FlussChildArgPortNestedWidgetBaseCustomAssignWidget | FlussChildArgPortNestedWidgetBaseProxyWidget | FlussChildArgPortNestedWidgetBaseSearchAssignWidget | FlussChildArgPortNestedWidgetBaseSliderAssignWidget | FlussChildArgPortNestedWidgetBaseStateChoiceAssignWidget | FlussChildArgPortNestedWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortNestedWidgetBaseCatchAll | None = Field(default=None)
+    widget: Annotated[FlussChildArgPortNestedWidgetBaseBlokAssignWidget | FlussChildArgPortNestedWidgetBaseChoiceAssignWidget | FlussChildArgPortNestedWidgetBaseCustomAssignWidget | FlussChildArgPortNestedWidgetBaseProxyWidget | FlussChildArgPortNestedWidgetBaseSearchAssignWidget | FlussChildArgPortNestedWidgetBaseSliderAssignWidget | FlussChildArgPortNestedWidgetBaseStateChoiceAssignWidget | FlussChildArgPortNestedWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortNestedWidgetBaseCatchAll | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -1451,6 +1473,10 @@ class FlussChildArgPortWidgetBase(BaseModel):
     kind: AssignWidgetKind
     model_config = ConfigDict(frozen=True)
 
+class FlussChildArgPortWidgetBaseBlokAssignWidget(FlussChildArgPortWidgetBase, BaseModel):
+    """A port blok as the port's widget: BSX the form draws where the port's control would be."""
+    typename: Literal['BlokAssignWidget'] = Field(alias='__typename', default='BlokAssignWidget', exclude=True)
+
 class FlussChildArgPortWidgetBaseChoiceAssignWidget(FlussChoiceAssignWidget, FlussChildArgPortWidgetBase, BaseModel):
     """A dropdown over the port's own `choices`."""
     typename: Literal['ChoiceAssignWidget'] = Field(alias='__typename', default='ChoiceAssignWidget', exclude=True)
@@ -1489,7 +1515,7 @@ class FlussChildArgPort(BaseModel):
     kind: PortKind
     identifier: str | None = Field(default=None)
     children: tuple[FlussChildArgPortNested, ...] | None = Field(default=None)
-    widget: Annotated[FlussChildArgPortWidgetBaseChoiceAssignWidget | FlussChildArgPortWidgetBaseCustomAssignWidget | FlussChildArgPortWidgetBaseProxyWidget | FlussChildArgPortWidgetBaseSearchAssignWidget | FlussChildArgPortWidgetBaseSliderAssignWidget | FlussChildArgPortWidgetBaseStateChoiceAssignWidget | FlussChildArgPortWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortWidgetBaseCatchAll | None = Field(default=None)
+    widget: Annotated[FlussChildArgPortWidgetBaseBlokAssignWidget | FlussChildArgPortWidgetBaseChoiceAssignWidget | FlussChildArgPortWidgetBaseCustomAssignWidget | FlussChildArgPortWidgetBaseProxyWidget | FlussChildArgPortWidgetBaseSearchAssignWidget | FlussChildArgPortWidgetBaseSliderAssignWidget | FlussChildArgPortWidgetBaseStateChoiceAssignWidget | FlussChildArgPortWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussChildArgPortWidgetBaseCatchAll | None = Field(default=None)
     nullable: bool
     model_config = ConfigDict(frozen=True)
 
@@ -1563,6 +1589,10 @@ class FlussArgPortWidgetBase(BaseModel):
     kind: AssignWidgetKind
     model_config = ConfigDict(frozen=True)
 
+class FlussArgPortWidgetBaseBlokAssignWidget(FlussArgPortWidgetBase, BaseModel):
+    """A port blok as the port's widget: BSX the form draws where the port's control would be."""
+    typename: Literal['BlokAssignWidget'] = Field(alias='__typename', default='BlokAssignWidget', exclude=True)
+
 class FlussArgPortWidgetBaseChoiceAssignWidget(FlussChoiceAssignWidget, FlussArgPortWidgetBase, BaseModel):
     """A dropdown over the port's own `choices`."""
     typename: Literal['ChoiceAssignWidget'] = Field(alias='__typename', default='ChoiceAssignWidget', exclude=True)
@@ -1611,7 +1641,7 @@ class FlussArgPort(BaseModel):
     nullable: bool
     description: str | None = Field(default=None)
     effects: tuple[Annotated[FlussArgPortEffectsBaseCustomEffect | FlussArgPortEffectsBaseHideEffect | FlussArgPortEffectsBaseMessageEffect, Field(discriminator='typename')] | FlussArgPortEffectsBaseCatchAll, ...] | None = Field(default=None)
-    widget: Annotated[FlussArgPortWidgetBaseChoiceAssignWidget | FlussArgPortWidgetBaseCustomAssignWidget | FlussArgPortWidgetBaseProxyWidget | FlussArgPortWidgetBaseSearchAssignWidget | FlussArgPortWidgetBaseSliderAssignWidget | FlussArgPortWidgetBaseStateChoiceAssignWidget | FlussArgPortWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussArgPortWidgetBaseCatchAll | None = Field(default=None)
+    widget: Annotated[FlussArgPortWidgetBaseBlokAssignWidget | FlussArgPortWidgetBaseChoiceAssignWidget | FlussArgPortWidgetBaseCustomAssignWidget | FlussArgPortWidgetBaseProxyWidget | FlussArgPortWidgetBaseSearchAssignWidget | FlussArgPortWidgetBaseSliderAssignWidget | FlussArgPortWidgetBaseStateChoiceAssignWidget | FlussArgPortWidgetBaseStringAssignWidget, Field(discriminator='typename')] | FlussArgPortWidgetBaseCatchAll | None = Field(default=None)
     kind: PortKind
     identifier: str | None = Field(default=None)
     children: tuple[FlussChildArgPort, ...] | None = Field(default=None)
@@ -2184,7 +2214,7 @@ class PublishPythonFlowMutation(BaseModel):
 
     class Meta:
         """Meta class for PublishPythonFlow """
-        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment ManifestEntry on ManifestEntry {\n  alias\n  actionHash\n  app\n  key\n  version\n  effect\n  __typename\n}\n\nfragment PythonFlow on PythonFlow {\n  id\n  title\n  description\n  lineage\n  source\n  entrypoint\n  runtime\n  status\n  hash\n  physical\n  createdAt\n  previous {\n    id\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  manifest {\n    ...ManifestEntry\n    __typename\n  }\n  __typename\n}\n\nmutation PublishPythonFlow($id: ID!) {\n  publishPythonFlow(input: {id: $id}) {\n    ...PythonFlow\n    __typename\n  }\n}'
+        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment ManifestEntry on ManifestEntry {\n  alias\n  actionHash\n  app\n  key\n  version\n  effect\n  __typename\n}\n\nfragment PythonFlow on PythonFlow {\n  id\n  title\n  description\n  lineage\n  source\n  entrypoint\n  runtime\n  status\n  hash\n  physical\n  createdAt\n  previous {\n    id\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  manifest {\n    ...ManifestEntry\n    __typename\n  }\n  __typename\n}\n\nmutation PublishPythonFlow($id: ID!) {\n  publishPythonFlow(input: { id: $id }) {\n    ...PythonFlow\n    __typename\n  }\n}'
 
 class ArchivePythonFlowMutation(BaseModel):
     """No documentation found for this operation."""
@@ -2197,7 +2227,7 @@ class ArchivePythonFlowMutation(BaseModel):
 
     class Meta:
         """Meta class for ArchivePythonFlow """
-        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment ManifestEntry on ManifestEntry {\n  alias\n  actionHash\n  app\n  key\n  version\n  effect\n  __typename\n}\n\nfragment PythonFlow on PythonFlow {\n  id\n  title\n  description\n  lineage\n  source\n  entrypoint\n  runtime\n  status\n  hash\n  physical\n  createdAt\n  previous {\n    id\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  manifest {\n    ...ManifestEntry\n    __typename\n  }\n  __typename\n}\n\nmutation ArchivePythonFlow($id: ID!) {\n  archivePythonFlow(input: {id: $id}) {\n    ...PythonFlow\n    __typename\n  }\n}'
+        document = 'fragment FlussActionArgumentLeaf on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgumentNested on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentLeaf\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentLeaf\n    __typename\n  }\n  __typename\n}\n\nfragment FlussActionArgument on ActionArgument {\n  key\n  valueLiteral\n  valuePath\n  utilCall {\n    operation\n    arguments {\n      ...FlussActionArgumentNested\n      __typename\n    }\n    __typename\n  }\n  valueList {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  valueDict {\n    ...FlussActionArgumentNested\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPortNested on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussStringAssignWidget\n      ...FlussSearchAssignWidget\n      ...FlussSliderAssignWidget\n      ...FlussChoiceAssignWidget\n      ...FlussCustomAssignWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n}\n\nfragment FlussChildReturnPortNested on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    kind\n    identifier\n    widget {\n      __typename\n      kind\n      ...FlussCustomReturnWidget\n      ...FlussChoiceReturnWidget\n    }\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n}\n\nfragment FlussComponentProp on ComponentProp {\n  key\n  staticValue\n  dynamicValue {\n    literal\n    path\n    __typename\n  }\n  declaresValue\n  utilCall {\n    ...FlussUtilCall\n    __typename\n  }\n  __typename\n}\n\nfragment FlussChildArgPort on ArgPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildArgPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  nullable\n}\n\nfragment FlussChildReturnPort on ReturnPort {\n  __typename\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPortNested\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  nullable\n}\n\nfragment FlussChoiceAssignWidget on ChoiceAssignWidget {\n  __typename\n  kind\n  followValue\n  placeholder\n}\n\nfragment FlussChoiceReturnWidget on ChoiceReturnWidget {\n  __typename\n  kind\n}\n\nfragment FlussCustomAssignWidget on CustomAssignWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n  dependencies\n}\n\nfragment FlussCustomEffect on CustomEffect {\n  __typename\n  kind\n}\n\nfragment FlussCustomReturnWidget on CustomReturnWidget {\n  __typename\n  kind\n  component\n  props {\n    ...FlussComponentProp\n    __typename\n  }\n}\n\nfragment FlussMessageEffect on MessageEffect {\n  __typename\n  kind\n  message\n}\n\nfragment FlussSearchAssignWidget on SearchAssignWidget {\n  __typename\n  kind\n  query\n  ward\n}\n\nfragment FlussSliderAssignWidget on SliderAssignWidget {\n  __typename\n  kind\n  min\n  max\n}\n\nfragment FlussStringAssignWidget on StringAssignWidget {\n  __typename\n  kind\n  placeholder\n  asParagraph\n}\n\nfragment FlussUtilCall on UtilCall {\n  operation\n  arguments {\n    ...FlussActionArgument\n    __typename\n  }\n  __typename\n}\n\nfragment Validator on Validator {\n  call {\n    ...FlussUtilCall\n    __typename\n  }\n  callJson\n  source\n  dependencies\n  label\n  errorMessage\n  __typename\n}\n\nfragment FlussArgPort on ArgPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussStringAssignWidget\n    ...FlussSearchAssignWidget\n    ...FlussSliderAssignWidget\n    ...FlussChoiceAssignWidget\n    ...FlussCustomAssignWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildArgPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n  default\n  validators {\n    ...Validator\n    __typename\n  }\n}\n\nfragment FlussReturnPort on ReturnPort {\n  __typename\n  key\n  label\n  nullable\n  description\n  effects {\n    kind\n    call {\n      ...FlussUtilCall\n      __typename\n    }\n    callJson\n    source\n    dependencies\n    ...FlussCustomEffect\n    ...FlussMessageEffect\n    __typename\n  }\n  widget {\n    __typename\n    kind\n    ...FlussCustomReturnWidget\n    ...FlussChoiceReturnWidget\n  }\n  kind\n  identifier\n  children {\n    ...FlussChildReturnPort\n    __typename\n  }\n  choices {\n    value\n    label\n    description\n    __typename\n  }\n}\n\nfragment ManifestEntry on ManifestEntry {\n  alias\n  actionHash\n  app\n  key\n  version\n  effect\n  __typename\n}\n\nfragment PythonFlow on PythonFlow {\n  id\n  title\n  description\n  lineage\n  source\n  entrypoint\n  runtime\n  status\n  hash\n  physical\n  createdAt\n  previous {\n    id\n    __typename\n  }\n  args {\n    ...FlussArgPort\n    __typename\n  }\n  returns {\n    ...FlussReturnPort\n    __typename\n  }\n  manifest {\n    ...ManifestEntry\n    __typename\n  }\n  __typename\n}\n\nmutation ArchivePythonFlow($id: ID!) {\n  archivePythonFlow(input: { id: $id }) {\n    ...PythonFlow\n    __typename\n  }\n}'
 
 class DeletePythonFlowMutation(BaseModel):
     """No documentation found for this operation."""
@@ -2210,7 +2240,7 @@ class DeletePythonFlowMutation(BaseModel):
 
     class Meta:
         """Meta class for DeletePythonFlow """
-        document = 'mutation DeletePythonFlow($id: ID!) {\n  deletePythonFlow(input: {id: $id})\n}'
+        document = 'mutation DeletePythonFlow($id: ID!) {\n  deletePythonFlow(input: { id: $id })\n}'
 
 class CreatePythonRunMutation(BaseModel):
     """No documentation found for this operation."""
@@ -2278,7 +2308,7 @@ class CloseRunMutation(BaseModel):
 
     class Meta:
         """Meta class for CloseRun """
-        document = 'mutation CloseRun($run: ID!) {\n  closeRun(input: {run: $run}) {\n    id\n    __typename\n  }\n}'
+        document = 'mutation CloseRun($run: ID!) {\n  closeRun(input: { run: $run }) {\n    id\n    __typename\n  }\n}'
 
 class SnapshotMutationSnapshot(BaseModel):
     """A Snapshot captures the state of a Run at a logical time `t`, grouping the events that were active at that point so a client can reconstruct the run's state without replaying every event."""
@@ -2350,7 +2380,7 @@ class FlowsQuery(BaseModel):
 
     class Meta:
         """Meta class for Flows """
-        document = 'fragment ListFlow on Flow {\n  id\n  title\n  createdAt\n  workspace {\n    id\n    __typename\n  }\n  __typename\n}\n\nquery Flows($limit: Int) {\n  flows(pagination: {limit: $limit}) {\n    ...ListFlow\n    __typename\n  }\n}'
+        document = 'fragment ListFlow on Flow {\n  id\n  title\n  createdAt\n  workspace {\n    id\n    __typename\n  }\n  __typename\n}\n\nquery Flows($limit: Int) {\n  flows(pagination: { limit: $limit }) {\n    ...ListFlow\n    __typename\n  }\n}'
 
 class SearchFlowsQueryOptions(BaseModel):
     """A Flow is a versioned, executable graph of nodes and edges that lives inside a Workspace. It is the concrete definition that Runs (live executions) and Traces (dry runs) are created from. Flows with the same graph hash within a workspace are deduplicated."""
@@ -2374,7 +2404,7 @@ class SearchFlowsQuery(BaseModel):
 
     class Meta:
         """Meta class for SearchFlows """
-        document = 'query SearchFlows($search: String, $values: [ID!]) {\n  options: flows(filters: {search: $search, ids: $values}) {\n    value: id\n    label: title\n    __typename\n  }\n}'
+        document = 'query SearchFlows($search: String, $values: [ID!]) {\n  options: flows(filters: { search: $search, ids: $values }) {\n    value: id\n    label: title\n    __typename\n  }\n}'
 
 class GetPythonFlowQuery(BaseModel):
     """No documentation found for this operation."""
@@ -2401,7 +2431,7 @@ class PythonFlowsQuery(BaseModel):
 
     class Meta:
         """Meta class for PythonFlows """
-        document = 'fragment ListPythonFlow on PythonFlow {\n  id\n  title\n  lineage\n  status\n  hash\n  createdAt\n  __typename\n}\n\nquery PythonFlows($limit: Int, $status: [PythonFlowStatus!]) {\n  pythonFlows(pagination: {limit: $limit}, filters: {status: $status}) {\n    ...ListPythonFlow\n    __typename\n  }\n}'
+        document = 'fragment ListPythonFlow on PythonFlow {\n  id\n  title\n  lineage\n  status\n  hash\n  createdAt\n  __typename\n}\n\nquery PythonFlows($limit: Int, $status: [PythonFlowStatus!]) {\n  pythonFlows(pagination: { limit: $limit }, filters: { status: $status }) {\n    ...ListPythonFlow\n    __typename\n  }\n}'
 
 class PythonFlowVersionsQueryPythonFlow(BaseModel):
     """A PythonFlow is one immutable version of a flow written as Python source. Versions of the same flow share a lineage; identical content within a lineage is deduplicated. Only PUBLISHED versions run, and only they can be deployed as actions."""
@@ -2446,7 +2476,7 @@ class SearchPythonFlowsQuery(BaseModel):
 
     class Meta:
         """Meta class for SearchPythonFlows """
-        document = 'query SearchPythonFlows($search: String, $values: [ID!]) {\n  options: pythonFlows(filters: {search: $search, ids: $values}) {\n    value: id\n    label: title\n    __typename\n  }\n}'
+        document = 'query SearchPythonFlows($search: String, $values: [ID!]) {\n  options: pythonFlows(filters: { search: $search, ids: $values }) {\n    value: id\n    label: title\n    __typename\n  }\n}'
 
 class GetPythonRunQuery(BaseModel):
     """No documentation found for this operation."""
@@ -2496,7 +2526,7 @@ class SearchPythonRunsQuery(BaseModel):
 
     class Meta:
         """Meta class for SearchPythonRuns """
-        document = 'query SearchPythonRuns($search: String, $values: [ID!]) {\n  options: pythonRuns(filters: {search: $search, ids: $values}) {\n    value: id\n    label: taskId\n    __typename\n  }\n}'
+        document = 'query SearchPythonRuns($search: String, $values: [ID!]) {\n  options: pythonRuns(filters: { search: $search, ids: $values }) {\n    value: id\n    label: taskId\n    __typename\n  }\n}'
 
 class ValidatePythonFlowQuery(BaseModel):
     """No documentation found for this operation."""
@@ -2572,7 +2602,7 @@ class SearchRunsQuery(BaseModel):
 
     class Meta:
         """Meta class for SearchRuns """
-        document = 'query SearchRuns($search: String, $values: [ID!]) {\n  options: runs(filters: {search: $search, ids: $values}) {\n    value: id\n    label: taskId\n    __typename\n  }\n}'
+        document = 'query SearchRuns($search: String, $values: [ID!]) {\n  options: runs(filters: { search: $search, ids: $values }) {\n    value: id\n    label: taskId\n    __typename\n  }\n}'
 
 class WorkspaceQuery(BaseModel):
     """No documentation found for this operation."""
@@ -3743,6 +3773,7 @@ Returns:
         return self.execute(WorkspacesQuery, variables).workspaces
 ActionArgumentInput.model_rebuild()
 ArgPortInput.model_rebuild()
+BlokAssignWidgetInput.model_rebuild()
 ComponentNodeInput.model_rebuild()
 ComponentPropInput.model_rebuild()
 CreatePythonFlowInput.model_rebuild()
