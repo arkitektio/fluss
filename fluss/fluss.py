@@ -7,6 +7,7 @@ from koil import unkoil, unkoil_gen
 from koil.composition import Composition
 from pydantic import Field
 from rath.origin import origin_context
+from rath.task import TASK_HEADER, TaskLike, current_task, token_of
 from rath.turms.funcs import TOperation
 
 from fluss.api.schema import FlussApi
@@ -36,18 +37,40 @@ class Fluss(Composition, FlussApi):
         # fluss sends every argument, set or not (no exclude_unset), as it always has.
         return operation.Arguments(**variables).model_dump(by_alias=True)
 
+    def _headers(self, task: TaskLike | None = None) -> dict[str, Any] | None:
+        """The per-call headers: the provenance token of the task this call is for.
+
+        ``task`` when the caller named one, else whichever task is running: the
+        run a flow creates is then recorded as created through that task.
+        """
+        token = token_of(task)
+        return {TASK_HEADER: token} if token else None
+
     def execute(
-        self, operation: type[TOperation], variables: dict[str, Any]
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: TaskLike | None = None,
     ) -> TOperation:
         """Executes a query or mutation in a blocking way."""
-        return unkoil(self.aexecute, operation, variables)
+        return unkoil(
+            self.aexecute,
+            operation,
+            variables,
+            task=task if task is not None else current_task.get(),
+        )
 
     async def aexecute(
-        self, operation: type[TOperation], variables: dict[str, Any]
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: TaskLike | None = None,
     ) -> TOperation:
         """Executes a query or mutation in a non-blocking way."""
         x = await self.rath.aquery(
-            operation.Meta.document, self._serialize(operation, variables)
+            operation.Meta.document,
+            self._serialize(operation, variables),
+            headers=self._headers(task if task is not None else current_task.get()),
         )
         return operation.model_validate(
             x.data, context=origin_context(client=self, rath=self.rath)

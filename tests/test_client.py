@@ -4,12 +4,14 @@ No server: the rath is a fake returning canned data.
 """
 
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from pydantic import BaseModel, ConfigDict
 from rath.origin import ContextBound, get_origin
+from rath.task import TASK_HEADER, task_scope
 
 from fluss.fluss import Fluss
 
@@ -19,12 +21,19 @@ class FakeRath:
 
     def __init__(self) -> None:
         self.sent: list[dict[str, Any]] = []
+        self.headers: list[dict[str, Any] | None] = []
 
     def _answer(self, variables: dict[str, Any]) -> SimpleNamespace:
         self.sent.append(variables)
         return SimpleNamespace(data={"flow": {"id": "flow-1", "graph": {"id": "g-1"}}})
 
-    async def aquery(self, document: str, variables: dict[str, Any]) -> SimpleNamespace:
+    async def aquery(
+        self,
+        document: str,
+        variables: dict[str, Any],
+        headers: dict[str, Any] | None = None,
+    ) -> SimpleNamespace:
+        self.headers.append(headers)
         return self._answer(variables)
 
     async def asubscribe(
@@ -78,6 +87,27 @@ async def test_aexecute_goes_through_the_client_and_results_remember_it() -> Non
     assert (len(sent(mine)), len(sent(other))) == (1, 0)
     origin = get_origin(result.flow.graph)
     assert origin is not None and origin.client is mine and origin.rath is mine.rath
+
+
+@dataclass
+class RunningTask:
+    """A task as the agent runs it: what fluss needs of it is its provenance token."""
+
+    token: str | None
+
+
+@pytest.mark.asyncio
+async def test_a_call_carries_the_running_tasks_token() -> None:
+    mine = client()
+    rath = mine.rath
+    assert isinstance(rath, FakeRath)
+
+    await mine.aexecute(GetFlow, {"id": "flow-1"})
+    with task_scope(RunningTask("signed-token")):
+        await mine.aexecute(GetFlow, {"id": "flow-1"})
+    await mine.aexecute(GetFlow, {"id": "flow-1"}, task=RunningTask("named"))
+
+    assert rath.headers == [None, {TASK_HEADER: "signed-token"}, {TASK_HEADER: "named"}]
 
 
 def test_execute_goes_through_the_client() -> None:
