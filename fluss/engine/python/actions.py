@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 from collections.abc import AsyncGenerator
 from functools import partial
-from typing import Any
+from typing import Annotated, Any
 
 import pydantic_monty
 from arkitekt_runtime.actors.functional import FUNC, FunctionalActor
@@ -145,7 +145,8 @@ async def resolve_manifest(
 
 
 async def run_python_flow(
-    flow: str,
+    # The id: the actor does not expand it, but the port is a PythonFlow.
+    flow: Annotated[str, PythonFlow],
     kwargs: dict[str, Any],
     fluss: Fluss,
     rekuest: Rekuest,

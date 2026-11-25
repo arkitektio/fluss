@@ -10,7 +10,7 @@ cannot be expressed through signature inference.
 
 from collections.abc import AsyncGenerator
 from functools import partial
-from typing import Any
+from typing import Annotated, Any
 
 from arkitekt_runtime.actors.functional import GEN, FunctionalActor
 from arkitekt_runtime.actors.types import ActorBuilder
@@ -40,7 +40,8 @@ from fluss.fluss import Fluss
 
 
 async def run_flow(
-    flow: str,
+    # The id: the actor does not expand it, but the port is a Flow.
+    flow: Annotated[str, Flow],
     kwargs: dict[str, Any],
     fluss: Fluss,
     rekuest: Rekuest,
