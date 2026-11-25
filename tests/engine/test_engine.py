@@ -440,18 +440,12 @@ async def test_cancellation_cleans_up(
 
 @pytest.mark.asyncio
 async def test_run_flow_action_is_registered() -> None:
-    """run_flow goes into the registry it is handed, not into a process-wide one.
+    """run_flow goes into the registry of the app that includes ``fluss_actions``."""
+    from arkitekt_spec.declare.assemble import assemble
 
-    `FlussService.register_implementations` is the caller in a real app; that
-    wiring is tested on the arkitekt side, which is where fakts is installed.
-    """
-    from arkitekt_spec.declare.app import AppRegistry
+    from fluss.engine import fluss_actions
 
-    from fluss.arkitekt import registry as package
-
-    # What an app does with `fluss_service`: take the package registry in.
-    registry = AppRegistry()
-    registry.merge(package)
+    registry = assemble(fluss_actions)
 
     implementation = registry.implementations["run_flow"]
 

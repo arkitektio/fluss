@@ -9,7 +9,6 @@ from typing import Any
 import pytest
 from arkitekt_spec.actions import Execution
 
-from fluss.engine.rekuest import RUN_FLOW_CONFIG, RUN_PYTHON_FLOW_CONFIG
 from fluss.engine.rpc_contract import DirectContract
 
 
@@ -32,8 +31,18 @@ class RootClient:
 
 
 def test_both_flow_runners_are_workflows() -> None:
-    assert RUN_FLOW_CONFIG.execution == Execution.WORKFLOW
-    assert RUN_PYTHON_FLOW_CONFIG.execution == Execution.WORKFLOW
+    from arkitekt_spec.declare.assemble import assemble
+
+    from fluss.engine import fluss_actions
+
+    flow = assemble(fluss_actions).implementations["run_flow"]
+    assert flow.execution == Execution.WORKFLOW
+
+    pytest.importorskip("fluss_monty")
+    from fluss.engine.python import fluss_python_actions
+
+    python = assemble(fluss_python_actions).implementations["run_python_flow"]
+    assert python.execution == Execution.WORKFLOW
 
 
 @pytest.mark.asyncio

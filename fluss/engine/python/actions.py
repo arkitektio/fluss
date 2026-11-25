@@ -24,11 +24,13 @@ from arkitekt_spec.actions import (
     ActionKind,
     ArgPortInput,
     DefinitionInput,
+    Execution,
     PortKind,
     ReturnPortInput,
 )
 from arkitekt_spec.declare.actors.actify import derive_implementation_details
 from arkitekt_spec.declare.actors.types import ImplementationDetails, RegisterConfig
+from arkitekt_spec.declare.bundle import Bundle
 from arkitekt_spec.declare.protocol.types import AnyFunction
 from arkitekt_spec.declare.structures.registry import StructureRegistry
 from arkitekt_spec.declare.task import LogLevel
@@ -310,3 +312,17 @@ def python_flow_actifier(
             concurrency=config.concurrency,
         ),
     )
+
+
+fluss_python_actions = Bundle()
+"""``run_python_flow``, for an app to offer: ``App(include=[fluss_python_actions])``."""
+
+fluss_python_actions.register_action(
+    run_python_flow,
+    interface="run_python_flow",
+    name="Run Python Flow",
+    actifier=python_flow_actifier,
+    concurrency="parallel",
+    execution=Execution.WORKFLOW,
+    dynamic_calls=True,
+)

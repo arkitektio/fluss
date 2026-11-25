@@ -1,8 +1,12 @@
 """The base client for fluss"""
 
+import os
 from collections.abc import AsyncGenerator, Generator
-from typing import Any
+from typing import Annotated, Any, Self
 
+from arkitekt_spec.declare.client import client
+from arkitekt_spec.declare.tested import tested_against
+from fakts import Alias, Require, TokenLoader
 from koil import unkoil, unkoil_gen
 from koil.composition import Composition
 from pydantic import Field
@@ -13,7 +17,16 @@ from rath.turms.funcs import TOperation
 from fluss.api.schema import FlussApi
 from fluss.rath import FlussRath
 
+TESTED = tested_against("fluss")
+"""The fluss server this release wants: the one its release job tested it against."""
 
+_API = os.path.join(os.path.dirname(__file__), "api")
+
+
+@client(
+    schema=os.path.join(_API, "schema.graphql"),
+    turms=os.path.join(_API, "project.json"),
+)
 class Fluss(Composition, FlussApi):
     """Fluss
 
@@ -30,6 +43,49 @@ class Fluss(Composition, FlussApi):
         ...,
         description="The Rath client used to interact with the Rekuest API.",
     )
+
+    @classmethod
+    def from_fakts(
+        cls,
+        fluss: Annotated[
+            Alias,
+            Require(
+                "live.arkitekt.fluss",
+                "Where the flows this app can run are kept",
+                version=TESTED,
+            ),
+        ],
+        tokens: TokenLoader,
+    ) -> Self:
+        """Built by a run: talks to the resolved fluss."""
+        from fakts.contrib.rath.auth import FaktsAuthLink
+        from rath.links.aiohttp import AIOHttpLink
+        from rath.links.graphql_ws import GraphQLWSLink
+        from rath.links.split import SplitLink
+
+        from fluss.rath import FlussLinkComposition
+        from graphql import OperationType
+
+        return cls(
+            rath=FlussRath(
+                link=FlussLinkComposition(
+                    auth=FaktsAuthLink(token_loader=tokens),
+                    split=SplitLink(
+                        left=AIOHttpLink(
+                            endpoint_url=fluss.to_http_path("graphql"),
+                            proxy=fluss.proxy,
+                            ssl_context=fluss.ssl_context(),
+                        ),
+                        right=GraphQLWSLink(
+                            ws_endpoint_url=fluss.to_ws_path("graphql"),
+                            proxy=fluss.proxy,
+                            ssl_context=fluss.ssl_context(),
+                        ),
+                        split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
+                    ),
+                )
+            )
+        )
 
     def _serialize(
         self, operation: type[TOperation], variables: dict[str, Any]

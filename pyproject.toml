@@ -12,8 +12,8 @@ license-files = ["LICENSE"]
 dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
-    # The service and structures are declared with arkitekt-spec (5.0: a service reads its scopes off its client).
-    "arkitekt-spec>=12.9",
+    # The client and structures are declared with arkitekt-spec.
+    "arkitekt-spec>=14",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
     "fakts>=6.1",
 ]
@@ -21,13 +21,12 @@ dependencies = [
 [project.optional-dependencies]
 # `fluss.engine` (formerly the reaktion-next distribution) executes flows and
 # runs on the execution core (arkitekt-runtime) and calls through rekuest, so it
-# needs both present. Plain `fluss` does not:
-# its own rekuest integration sits behind a try/except in __init__, so the
-# dependency stays opt-in rather than being forced on every install.
-engine = ["rekuest>=15", "arkitekt-runtime>=10.5"]
+# needs both present. Plain `fluss` does not: `run_flow` is offered only by an
+# app that includes `fluss.engine.fluss_actions`.
+engine = ["rekuest>=19", "arkitekt-runtime>=11"]
 # `fluss.engine.python` runs Python flows on rekuest; checking and running a source is
 # fluss-monty's, which the fluss server validates with too.
-python = ["rekuest>=15", "arkitekt-runtime>=10.5", "fluss-monty>=1"]
+python = ["rekuest>=19", "arkitekt-runtime>=11", "fluss-monty>=1"]
 
 
 # `_tested.json` is written by the integration tests (the server version they ran against)
@@ -120,6 +119,6 @@ dev = [
     "ruff==0.17.6",
     "turms>=3.0",
     "dokker>=2.8",
-    "rekuest>=15",
+    "rekuest>=19",
     "basedpyright==1.40.2",
 ]

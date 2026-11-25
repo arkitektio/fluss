@@ -5,3 +5,7 @@ server; this package needs the ``python`` extra. :mod:`.actions` is the rekuest 
 runs a published version, each call a child task of the run; :mod:`.client` stores a version
 from its source (the server validates it) and deploys a published one as an action of its own.
 """
+
+from .actions import fluss_python_actions
+
+__all__ = ["fluss_python_actions"]

@@ -129,20 +129,22 @@ async def pool() -> AsyncIterator[pydantic_monty.AsyncMonty]:
 
 def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
     from arkitekt_spec.declare.actors.actify import derive_implementation_details
+    from arkitekt_spec.declare.actors.types import RegisterConfig
+    from arkitekt_spec.declare.assemble import assemble
     from rekuest.client.client import Rekuest
 
-    from fluss.arkitekt import registry
     from fluss.engine.python.actions import (
         PythonFlowActor,
         build_run_python_flow_definition,
+        fluss_python_actions,
         python_flow_actifier,
         run_python_flow,
     )
-    from fluss.engine.rekuest import RUN_PYTHON_FLOW_CONFIG
     from fluss.fluss import Fluss
 
+    registry = assemble(fluss_python_actions)
     wanted = derive_implementation_details(
-        run_python_flow, RUN_PYTHON_FLOW_CONFIG, registry.structure_registry
+        run_python_flow, RegisterConfig(), registry.structure_registry
     ).injected_variables
     assert wanted.task_variables == ["task"]
     assert wanted.service_client_variables == {"fluss": Fluss, "rekuest": Rekuest}
@@ -156,7 +158,7 @@ def test_run_python_flow_is_registered_with_a_handcrafted_definition() -> None:
 
     # One actor serves every run, and owns the worker pool they share.
     _, _, builder = python_flow_actifier(
-        run_python_flow, registry.structure_registry, RUN_PYTHON_FLOW_CONFIG
+        run_python_flow, registry.structure_registry, RegisterConfig()
     )
     assert builder.func is PythonFlowActor
 

@@ -136,21 +136,16 @@ async def test_unset_arguments_are_still_sent() -> None:
 
 
 def test_run_flow_takes_its_clients_and_task_by_injection() -> None:
-    """Only the flow and its kwargs are ports; fluss, rekuest and task are injected.
-
-    A parameter is a client because a service on the registry returns its class,
-    so this reads the registry fluss ships -- which takes rekuest's service in
-    before it registers ``run_flow``.
-    """
+    """Only the flow and its kwargs are ports; fluss, rekuest and task are injected."""
     from arkitekt_spec.declare.actors.actify import derive_implementation_details
+    from arkitekt_spec.declare.actors.types import RegisterConfig
+    from arkitekt_spec.declare.assemble import assemble
     from rekuest.client.client import Rekuest
 
-    from fluss.arkitekt import registry
-    from fluss.engine.actions import run_flow
-    from fluss.engine.rekuest import RUN_FLOW_CONFIG
+    from fluss.engine import fluss_actions, run_flow
 
     wanted = derive_implementation_details(
-        run_flow, RUN_FLOW_CONFIG, registry.structure_registry
+        run_flow, RegisterConfig(), assemble(fluss_actions).structure_registry
     ).injected_variables
     assert wanted.task_variables == ["task"]
     assert wanted.service_client_variables == {"fluss": Fluss, "rekuest": Rekuest}

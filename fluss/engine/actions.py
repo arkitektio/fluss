@@ -19,6 +19,7 @@ from arkitekt_spec.actions import (
     ActionKind,
     ArgPortInput,
     DefinitionInput,
+    Execution,
     PortKind,
     ReturnPortInput,
 )
@@ -27,6 +28,7 @@ from arkitekt_spec.declare.actors.types import (
     ImplementationDetails,
     RegisterConfig,
 )
+from arkitekt_spec.declare.bundle import Bundle
 from arkitekt_spec.declare.protocol.types import AnyFunction
 from arkitekt_spec.declare.structures.registry import StructureRegistry
 from rath.scalars import ID
@@ -148,3 +150,19 @@ def flow_actifier(
             concurrency=config.concurrency,
         ),
     )
+
+
+fluss_actions = Bundle()
+"""``run_flow``, for an app to offer: ``App(include=[fluss_actions])``."""
+
+fluss_actions.register_action(
+    run_flow,
+    interface="run_flow",
+    name="Run Flow",
+    actifier=flow_actifier,
+    # One actor serves every run: runs must not queue behind each other.
+    concurrency="parallel",
+    # A workflow, resumed after a crash; its nodes call actions found at run time.
+    execution=Execution.WORKFLOW,
+    dynamic_calls=True,
+)

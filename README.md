@@ -38,16 +38,15 @@ flavour (`fluss.get_flow(id)`, `await fluss.aget_flow(id)`).
 
 ### In an arkitekt app
 
-Add the service to your app and ask for `fluss: Fluss`; the client is injected by annotation. Flows
-and runs travel between actions by id (`@fluss/flow`, `@fluss/run`, `@fluss/pythonflow`,
+Ask for `fluss: Fluss`; the client is injected by annotation. Flows and runs travel between actions by id (`@fluss/flow`, `@fluss/run`, `@fluss/pythonflow`,
 `@fluss/pythonrun`), so an action can take and return them directly:
 
 ```python
 from arkitekt import App, run
-from fluss import Fluss, fluss_service
+from fluss import Fluss
 from fluss.api.schema import Flow
 
-app = App("flow-inspector", "0.1.0", services=[fluss_service])
+app = App("flow-inspector", "0.1.0")
 
 
 @app.action
@@ -60,17 +59,24 @@ if __name__ == "__main__":
     run(app)
 ```
 
-An app built with the fluss service also offers the generic **Run Flow** action (interface
-`run_flow`), so it can execute any flow it is handed (**Run Python Flow** too, with the `python`
-extra).
+To execute any flow it is handed, an app offers the generic **Run Flow** action (interface
+`run_flow`, the `engine` extra) by including its bundle; **Run Python Flow** (the `python` extra)
+likewise:
+
+```python
+from fluss.engine import fluss_actions
+from fluss.engine.python import fluss_python_actions
+
+app = App("flow-runner", "0.1.0", include=[fluss_actions, fluss_python_actions])
+```
 
 ### From a script
 
 ```python
-from arkitekt import easy
-from fluss import fluss_service
+from arkitekt import connect
+from fluss import Fluss
 
-with easy("my-script", fluss_service) as fluss:
+with connect(Fluss) as fluss:
     for flow in fluss.flows(limit=10):
         print(flow.id, flow.title)
 ```
