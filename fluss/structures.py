@@ -3,6 +3,7 @@
 Imported by ``fluss/__init__``: an app using ``Fluss`` takes every one of them.
 """
 
+from arkitekt_spec.actions import AssignWidgetInput
 from arkitekt_spec.declare.structures.declare import structure
 from arkitekt_spec.declare.widgets import SearchWidget
 
@@ -19,7 +20,7 @@ from fluss.api.schema import (
 from fluss.fluss import Fluss
 
 
-def _search(query: object) -> SearchWidget:
+def _search(query: object) -> AssignWidgetInput:
     """The widget that picks one of these out of the deployment."""
     return SearchWidget(query=query.Meta.document, ward="fluss")  # type: ignore[attr-defined]
 
